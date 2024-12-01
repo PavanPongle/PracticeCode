@@ -1,29 +1,29 @@
-# Design Patterns in Modern C--. Reusable Approaches for Object-oriented Software Design ( PDFDrive.com )
-https://www.oreilly.com/library/view/design-patterns-in/9781484236031/
+# Design Patterns in Modern C--. Reusable Approaches for Object-oriented Software Design
+[Link](ttps://www.oreilly.com/library/view/design-patterns-in/9781484236031/)
 
 # Modern C++ Programming Cookbook: Master Modern C++ with comprehensive solutions for C++23 and all previous standards , Third Edition
-https://www.packtpub.com/en-in/product/modern-c-programming-cookbook-9781835084847
+[Link](https://www.packtpub.com/en-in/product/modern-c-programming-cookbook-9781835084847)
 
 # Building Low Latency Applications with C++: Develop a complete low latency trading ecosystem from scratch using modern C++
-https://www.packtpub.com/en-us/product/building-low-latency-applications-with-c-9781837639359
+[Link](https://www.packtpub.com/en-us/product/building-low-latency-applications-with-c-9781837639359)
 
 # C++ Concurrency in Action, Second Edition by Anthony Williams
-https://www.oreilly.com/library/view/c-concurrency-in/9781617294693/?_gl=1*14jvek6*_ga*MTU4NDQ5OTk0OS4xNzMzMDU2MTE2*_ga_092EL089CH*MTczMzA1NjExNS4xLjEuMTczMzA1NjM4MC42MC4wLjA.
+[Link](https://www.oreilly.com/library/view/c-concurrency-in/9781617294693/?_gl=1*14jvek6*_ga*MTU4NDQ5OTk0OS4xNzMzMDU2MTE2*_ga_092EL089CH*MTczMzA1NjExNS4xLjEuMTczMzA1NjM4MC42MC4wLjA.)
 
 # C++ NotesForProfessionals
-https://books.goalkicker.com/CPlusPlusBook/
+[Link](https://books.goalkicker.com/CPlusPlusBook/)
 
 # Data Structures and Algorithms with the C++ STL: A guide for modern C++ practitioners
-https://www.packtpub.com/en-us/product/data-structures-and-algorithms-with-the-c-stl-9781835468555
+[Link](https://www.packtpub.com/en-us/product/data-structures-and-algorithms-with-the-c-stl-9781835468555)
 
 # Concurrency with Modern C++: What every professional C++ programmer should know about concurrency.by Grimm R
-https://www.packtpub.com/en-in/product/concurrency-with-modern-c-9781838982737?srsltid=AfmBOoqr-x0E4CQITuUCP9Bs_zbBjEj1WPfVDv-HOLvcvhTuqMg8Nu7v
+[Link](https://www.packtpub.com/en-in/product/concurrency-with-modern-c-9781838982737?srsltid=AfmBOoqr-x0E4CQITuUCP9Bs_zbBjEj1WPfVDv-HOLvcvhTuqMg8Nu7v)
 
 # Hands-On Design Patterns with C++: Solve common C++ problems with modern design patterns and build robust applications , Second Edition . By Fedor G. Pikus
-https://www.packtpub.com/en-us/product/hands-on-design-patterns-with-c-9781804611555
+[Link](https://www.packtpub.com/en-us/product/hands-on-design-patterns-with-c-9781804611555)
 
 # C++ High Performance: Master the art of optimizing the functioning of your C++ code , Second Edition
-https://www.packtpub.com/en-in/product/c-high-performance-9781839216541
+[Link](https://www.packtpub.com/en-in/product/c-high-performance-9781839216541)
 
 # The Art of Writing Efficient Programs: An advanced programmer's guide to efficient hardware utilization and compiler optimizations using C++ examples. Fedor G. Pikus
-https://www.packtpub.com/en-dk/product/the-art-of-writing-efficient-programs-9781800208117
+[Link](https://www.packtpub.com/en-dk/product/the-art-of-writing-efficient-programs-9781800208117)
