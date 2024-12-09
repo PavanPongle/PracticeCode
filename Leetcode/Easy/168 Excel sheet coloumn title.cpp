@@ -45,6 +45,7 @@ public:
         {
             rem = (--columnNumber) % 26;
             columnNumber /= 26;
+            //Note we are not appending it, we are inserting it at the begining
             s.insert(s.begin(), 'A' + rem );
         }
 
