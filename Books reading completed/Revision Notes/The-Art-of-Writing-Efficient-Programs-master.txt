@@ -1,0 +1,141 @@
+Section 1 – Performance Fundamentals
+Chapter 1, Introduction to Performance and Concurrency
+	1. it is foolish to spend long hours optimizing a function that ends up being called once a day and takes only a second
+Chapter 2, Performance Measurements
+	1. GperfTools
+	2. For the data collected by the Google profiler, the user interface tool is google-pprof (often installed as simply pprof)
+	3. just by changing type of index loop from unsigned int to int reduce run time, this is because of dropping boundary condition checking.
+	4. High-resolution timers, get time of process/thread running on CPU 
+		clock_gettime(CLOCK_REALTIME, &rt0);
+		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ct0);
+		clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tt0); 
+	5. Types of profiling
+		Measurements Under VM
+		Instrumented and special instruction
+		Hardware event counter
+		Time based sampling
+	6. The Perf profiler
+		perf stat ./example
+		Give info of cache mis, branch mis predict, instruction, page-fault
+		It shows both the source code and the assembly instructions produced from it
+	7. The Google Performance profiler
+		To prepare the code for profiling, you have to link it with the profiler library, -lprofiler
+		We can further analyze the program performance at the source code level
+	8. The best way to make slow code faster is often to call it less often.
+	9. The standard says that the compiler can make whatever changes it wants to the program as long as the effect of these changes does not alter the observable behavior.
+	10. volatile prevent the optimizing away while microbenchmarking
+	11. the function definition is in the same file as the call site, the compiler can inline the entire function
+ 
+Chapter 3, CPU Architecture, Resources, and Performance Implications
+	1. subtraction and multiplication take exactly as much time as addition, while integer division is rather expensive (three to four times slower)
+	2. Process can run multiple arithmetic operations, as it has ALU, and using instruction pipelining.
+	3. Running multiple operations for available memory better than running each operation in separeate loop. Performance gain due to inst pipeline.
+	4. CPU, apparently, can execute between five and seven different operations per iteration
+	5. Visualizing instruction-level parallelism
+		1. Machine Code Analyzer (MCA), which is a part of the LLVM toolchain
+		2. The first step is to annotate the code with the analyzer markup to select which part of the code to analyze:
+			#define MCA_START __asm volatile("# LLVM-MCA-BEGIN");
+			#define MCA_END __asm volatile("# LLVM-MCA-END");
+		3. We can visualize for each cycle what instructions are running at what stage.
+	6. Data dependencies and pipelining
+		1. If data is not available or is result of some operation then pipeline wait for data to available, loosing cycles.
+		2. 
+		for (size_t i = 0; i < N; ++i) {
+			s[i] = (p1[i] + p2[i]);
+			d[i] = (p1[i] - p2[i]);
+			a1[i] += s[i]*d[i]; // have to wait for it
+		}
+		3. Register renaming, if enough number of register not available for store the result, then it is stored in someother register and while execution on CPU it is renamed and used instantly.
+		4. Converting a loop into linear code is known as loop unrolling
+	7. Pipelining and branches
+		1. the factor that limits our ability to maximize efficiency is how fast we can produce the data to feed into these operations
+		2. processors have some sort of conditional move or even conditional add instructions, and the compiler may decide to use them. If this happens, our code becomes entirely sequential with no jumps or branches and can be pipelined perfectly
+		3. The x86 CPUs have a conditional move instruction, cmove
+		4. here due to use of rand, compiler is not able to detect next value of these variable for next pipeline execution
+	8. Branch prediction
+		1. branch prediction. It analyzes the history of every branch in the code and assumes that the behavior will not change in the future. If changes then no undefined behaviour, The CPU must have special hardware circuits, such as buffers, to store these events temporarily.
+	9. Profiling for branch mispredictions
+		1. perf record -e branches,branch-misses ./benchmark
+		2. Here, CPU branch prediction learned the pattern of alteration and optimised accordingly, even with rand() number condition.
+	10. Optimization of complex conditions
+		1. if (b1[i] || b2[i]) 
+			by analysing it will be executed always but the processor is unable to predict it, reason is, there are 2 condition instructions for us we see one final condition for if clause but processor evaluate 2 conditions hence cannot predict the branch
+		2. if ((c1 && c2) || c3) {
+			The overall condition should be easily predictable, and the true branch is taken. However, from the processor's point of view, it is not a single condition but three separate conditional jumps:
+		3. logical && and || , are expanded to true or false by compiler hence it is creating new branches for evaluating next operand
+		4. How do we optimize the code? first impulse may be to move the condition evaluation out of the if() statement:
+			const bool c = c1 && c2) || c3;
+			if (c) { … } else { … }
+		5. However, if we pre-evaluate all the conditional expressions and store them in a new array, most compilers will not eliminate that temporary array, that will help in prediction, then less branch mispredictions.
+		6. Another optimization that is usually effective is to replace the logical && and || operations with addition and multiplication or with bitwise & and | operations
+	11. Branchless computing
+		1. Loop unrolling
+			for (size_t i = 0; i < N; ++i) {
+				a1 += p1[i] + p2[i];
+			}
+			
+			To
+			
+			for (size_t i = 0; i < N; i += 2) {
+				a1 += p1[i] + p2[i]
+					+ p1[i+1] + p2[i+1];
+			}
+			vectorizing compiler will use SSE or AVX instructions to implement this loop, which, in effect, unrolls its body since the vector instructions process several array elements at once.
+			
+		2. Branchless selection
+			1. 
+			unsigned long* a[2] = { &a2, &a1 };
+			for (size_t i = 0; i < N; ++i) {
+				a[b1[i]] += p1[i];
+				
+			2. IMP	
+			for (size_t i = 0; i < N; ++i) {
+				if (b1[i]) {
+					a1 += p1[i] - p2[i];
+				} else {
+					a2 += p1[i] * p2[i];
+				}
+			}
+			
+			TO
+			
+			unsigned long* a[2] = { &a2, &a1 };
+			for (size_t i = 0; i < N; ++i) {
+				//lets calculat result of both if and else condition and store in array, and based on b1 value choose from index.
+				unsigned long s[2] = { p1[i] * p2[i], p1[i] - p2[i] };
+				a[b1[i]] += s[b1[i]];
+			}
+			
+			s[2] values require 2 operation calculation, but we requrie only one, it seems redundant when either of it is going to consume we can afford it because processor can execute multiple such operations in single cycle that is more efficient than branch mis prediction.
+
+			OR
+			
+			unsigned long a1 = 0, a2 = 0;
+			for (size_t i = 0; i < N; ++i) {
+				unsigned long s1[2] = { 0, p1[i] - p2[i] };
+				unsigned long s2[2] = { p1[i] * p2[i], 0 };
+				a1 += s1[b1[i]];
+				a2 += s2[b1[i]];
+			}
+
+			3.
+			unsigned char *c = ...; // Random values from 0 to 255
+			for (size_t i = 0; i < N; ++i) {
+				c[i] = (c[i] < 128) ? c[i] : 128;
+			}
+			
+			TO
+			//branchless version using lookup table
+			unsigned char *c = ...; // Random values from 0 to 255
+			unsigned char LUT[256] = { 0, 1, …, 127, 128, 128, … 128 };
+			for (size_t i = 0; i < N; ++i) {
+				c[i] = LUT[c[i]];
+			}
+			
+		3. bad branchless conversion avoid function inline, and if function is not inline  then branches are flushed, more expensive than branch mis predict
+		//where f1 and f2 are function pointers
+		decltype(f1)* f[] = { f1, f2 };
+		
+
+Chapter 4, Memory Architecture and Performance
+Chapter 5, Threads, Memory, and Concurrency
