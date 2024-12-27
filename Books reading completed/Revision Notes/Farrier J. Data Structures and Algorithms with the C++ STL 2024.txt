@@ -1,0 +1,281 @@
+Part 1: Mastering std::vector
+Chapter 1: The Basics of std::vector
+	1. Modernizing with std::erase and std::erase_if
+	2. std::erase, std::erase_if
+	3. Prefer using empty() when possible
+	4. empty() typically has a constant time complexity of O(1), whereas .size() might have a linear time complexity of O(n)
+	
+Chapter 2: Mastering Iterators with std::vector
+	1. Range-based for loops, Internally, the range-based for loop leverages the begin() and end() functions to navigate the container
+	2. Creating a custom iterator
+		Type aliases:
+			iterator_category (should be set to std::random_access_iterator_tag)
+			 value_type
+			 difference_type  -- std::ptrdiff_t;
+			 pointer
+			 reference
+		• Dereference:
+			 operator*() (dereference operator)
+			 operator->() (arrow operator)
+		• Increment and decrement:
+			 operator++() (prefix increment)
+			 operator++(int) (postfix increment)
+			 operator--() (prefix decrement)
+			 operator--(int) (postfix decrement)
+		• Arithmetic operations (with a difference type, often ptrdiff_t):
+			 operator+(difference_type) (move iterator forward by some amount)
+			 operator-(difference_type) (move iterator backward by some amount)
+			 operator+=(difference_type) (increment iterator by some amount)
+			 operator-=(difference_type) (decrement iterator by some amount)
+		• Difference between two iterators:
+			 operator-(const RandomAccessIteratorType&)
+		• Subscript operator:
+			 operator[](difference_type)
+		• Relational operators:
+			 operator== (equality)
+			 operator!= (inequality)Creating a custom iterator 43
+			 operator< (less than)
+			 operator<= (less than or equal to)
+			 operator> (greater than)
+			 operator>= (greater than or equal to)
+		• Swap (sometimes useful, though not strictly required for the iterator itself):
+		
+Chapter 3: Mastering Memory and Allocators with std::vector
+	Resizing and reserving memory
+		Note, resize and reserve both are different resize is related to size reserve is with capacity
+	Custom allocator basics
+		allocate(): Allocates a memory block suitable for holding a specified number of objects
+		• deallocate(): Returns a block of memory previously allocated by the allocator to the system
+		• construct(): Constructs an object in a given memory location
+		• destroy(): Calls the destructor on an object at a given memory location
+	universal ref && must be required for forwarding
+	(decltype(args)(args)...) another syntax for forwarding
+	
+Chapter 4: Mastering Algorithms with std::vector
+	The engine under the hood – introsort
+		quicksort - ingeneral
+		heapsort - when depth of quicksort goes beyond 2*logn
+		insertion sort - when partation size is <= 16
+	std::lower_bound - 
+		returns an iterator pointing to the first element that is not less than (i.e., greater than or equal to) the specified value.
+	std::upper_bound - 
+		When given an element, it identifies the first position where an element greater than the specified value resides. Effectively, if you have multiple occurrences of an element, std::upper_bound will point just past the last occurrence.
+	equal_range member function. It provides a range (beginning and end iterators)
+	std::rotate - Performs a left rotation on a range of elements.
+	
+Chapter 5: Making a Case for std::vector
+
+
+Part 2: Understanding STL Data Structures
+Chapter 6: Advanced Sequence Container Usage
+	1. When accessing an element from std::vector<bool>, you don’t get a normal reference as you do with other vector types. Instead, you get a proxy object.
+	2. Deque - 
+		std::deque can serve as a queue (FIFO data structure) and a stack (LIFO data structure). 
+		Buffered data streams
+		Sliding window algorithms
+		Adaptable to other data structures:
+		Undo/redo mechanisms with a limit: 
+	3. List
+		LRU cacahe
+		doubly linked list
+		The power of splicing: std::list offers the unique ability to transfer elements between lists in constant time using the splice function. 
+		ChainedHashTable
+	3. std::string
+		std::u8string, std::u16string, and std::u32string.
+		
+Chapter 7: Advanced Ordered Associative Container Usage
+	1. multiset	- 
+		duplicate keys
+		How they are implemented in STL?
+	2. std::multiset
+		one key can have multiple values, it's not duplication of keys
+	
+Chapter 8: Advanced Unordered Associative Container Usage
+	1. std::unordered_set
+		bucket: This can retrieve the bucket number for a given element.
+		load_factor - = size/buckets ie. elements per bucket (bucket_count):
+		max_load_factor: The load factor threshold, which, when surpassed, triggers a rehash
+		Resize/Reserve/Rehashing
+	2. std::unordered_map
+		Use rehash if you think your map is inefficient, and reserve if you're preparing for a lot of insertions.
+
+Chapter 9: Container Adaptors
+	1. std::stack
+		underlying std::deque, std::vector, and std::list 
+		By default, std::stack uses std::deque as its container
+	2. std::queue
+		std::deque or std::list. std::queue provides a straightforward interface for working with queues
+		The default container for std::queue is std::deque
+	3. std::priority_queue
+		Max heap
+		std::priority_queue<std::pair<int, int>,
+							std::vector<std::pair<int, int>>,
+							std::greater<std::pair<int, int>>
+							>
+		template <class T, class Container = vector<T>,  class Compare = less<typename Container::value_type> > class priority_queue; default container is vector comparator is std::less
+		priority queue is not sorted it just return highest element in O(1) time
+	4. std::flat_set -  an associative set stored in a sorted flat array
+		template<class Key,
+				class Compare = std::less<Key>,
+				class KeyContainer = std::vector<Key>
+				> class flat_set;
+	5. std::flat_map
+	6. std::flat_multiset
+	7. std::flat_multimap
+	
+Chapter 10: Container Views
+	1. std::span
+		subspan(): Generates another span from the current one
+		std::array is directly converted to std::span
+	2. std::mdspan
+		multidimensional 
+		Given its non-owning nature, accessing data through an invalidated std::mdspan (if the underlying data is destroyed) is an undefined behavior and won’t throw standard exceptions. Always ensure data validity.
+
+Part 3: Mastering STL Algorithms
+Chapter 11: Fundamental Algorithms and Searching
+	1. std::partial_sort - when you want to sort partial array or array is sorted partially	you must maintain the original order of equal elements, std::stable_sort
+	2. std::is_partitioned - This algorithm checks if such a partitioning exists in a sequence based on a predicate
+	3. he situation where you want to compare two sequences to check if they’re permutations of each other. The STL offers std::is_permutation
+	4. std::adjacent_find 
+	5.  std::lexicographical_compare
+	
+Chapter 12: Manipulation and Transformation
+	1. std::generate
+	2. std::replace and std::replace_if
+
+Chapter 13: Numeric and Range-Based Operations
+	1. std::iota
+	2. std::adjacent_difference
+	3. std::reduce is parallel version of std::accumulate 
+	4. Additionally, there’s std::execution::par_unseq for parallel and vectorized execution, ensuring even greater throughput
+	5.  std::transform_reduce. This is a fusion of std::transform and std::reduce. It applies a transformation function to each range element and reduces the results into a single value.
+	6. exclusive scan exclude the current index in sum, where as inclusive includes itself
+	7.  std::set_intersection,  std::set_union,  std::symmetic_difference, can be used with any container not just set.
+
+Chapter 14: Permutations, Partitions, and Heaps
+	1. Partitioning
+		std::partition_point 
+		
+	2. Permutations - Imagine listing all possible permutations
+		std::next_permutation
+		std::prev_permutation
+		std::shuffle
+	3. Heap operations
+		there is no container type of heap make_heap can work on any conter like, vector, list, deque etc. not on set or map
+		std::make_heap
+		std::push_heap and std::pop_heap
+			when new element is added in heap, for heapify we use std::push_heap function
+		sort_heap
+		is_heap
+
+Chapter 15: Modern STL with Ranges
+	std::ranges::sort
+	std::ranges::find
+	std::views::filter
+	std::views::transform
+	std::ranges::to<std::vector<int>>();
+	A range can be loosely thought of a pair of iterators, although they need not be implemented that way.
+	A view is a lightweight wrapper that presents a view of an underlying sequence of elements in some custom way without mutating or copying it. Views are cheap to create and copy, and have non-owning reference semantics.
+	lazy evaluation
+	
+Part 4: Creating STL-Compatible Types and Algorithms
+Chapter 16: Creating STL-Types Containers
+	1. CustomContainer
+		using iterator
+		iterator begin()
+		iterator end()
+		using const_iterator
+		const_iterator begin()
+		const_iteratorend()
+	2. Hash map for Custom type
+		bool operator==(const Person &other) const -- class 
+		std::size_t operator()(const Person &person) const -- hash struct
+		std::unordered_map<Person, std::string, PersonHash>
+		
+Chapter 17: Creating STL-Compatible Algorithms
+
+Chapter 18: Type Traits and Policies
+	1. std::is_pointer<T>::value
+	2. std::is_integral<T>::value
+	3. std::is_arithmetic<T>::value
+	4. declval will create a fake instance of type T, then on it we are calling serialize method
+	5. void_t is a meta-function that maps any (number of) types to type void
+	6. Key Differences:
+		decltype: Inspects the type of an expression, including references and cv-qualifiers.
+		declval: Generates an rvalue reference of a type, useful for accessing member types in templates.
+		decay_t: Transforms a type to its "decayed" version, as if it were passed by value.
+	7. Common Use Cases:
+		decltype: Used in template metaprogramming to deduce the type of an expression.
+		declval: Used with decltype to access member types of incomplete types or types with no default constructor.
+		decay_t: Used to obtain the underlying type of a variable after type decay.
+	8. decltype:
+		Purpose: Extracts the type of an expression.
+		Syntax: decltype(expression)
+	9. declval:
+		Purpose: Creates a "fake" instance of a type without actually constructing it.
+		Syntax: std::declval<T>()
+
+		template <typename T>
+		void foo() {
+			decltype(std::declval<T>().some_member()) result;
+	10. decay_t:
+		Purpose: Applies type decay to a type, which removes const/volatile qualifiers, references, and array-to-pointer conversions.
+		Syntax: std::decay_t<T>
+		const int& x = 5;
+		std::decay_t<decltype(x)> y = 10; // y is of type int
+	11. Using policies with the STL
+		std::allocator<T>
+		std::less<T>
+		
+Part 5: STL Data Structures and Algorithms: Under the Hood
+Chapter 19: Exception Safety
+	1. noexcept
+Chapter 20: Thread Safety and Concurrency with the STL
+	std::shared_mutex -- unique_lock (exclusive) or std::shared_lock (read lock)
+	
+Chapter 21: STL Interaction with Concepts and Coroutines
+	std::convertible_to<void>
+	Coroutines
+		• co_await: Suspends the current coroutine until the awaited expression is ready, at which point the coroutine resumes
+		• co_return: This is used to finish the coroutine, potentially returning a value
+		• co_yield: Produces a value in a generator-like fashion, allowing iteration over a coroutine
+		
+		A generator is a class template designed to produce a sequence of values of type T, one at a time,upon request.
+		1. get_return_object: Returns the generator object associated with this coroutine
+		• initial_suspend and final_suspend: 
+		• unhandled_exception: 
+		• return_void: 
+		• yield_value: This is called when a value is yielded (co_yield), suspending the coroutine and storing the yielded value
+		
+		template <typename T> class generator {
+		public:
+			struct promise_type {
+				T value;
+				auto get_return_object() {	return generator{handle_type::from_promise(*this)};}
+				auto initial_suspend() { return std::suspend_always{}; }
+				auto final_suspend() noexcept { return std::suspend_always{}; }
+				void unhandled_exception() { std::terminate(); }
+				void return_void() {}
+				auto yield_value(T x) { value = x;	return std::suspend_always{}; }
+			}
+			
+			using handle_type = std::coroutine_handle<promise_type>;
+			generator(handle_type h) : m_handle(h) {}
+			
+			generator(const generator &) = delete;
+			
+			generator(generator &&o) noexcept
+			: m_handle(std::exchange(o.m_handle, {})) {}
+			
+			~generator() { if (m_handle) m_handle.destroy(); }
+			
+			bool next() { m_handle.resume(); return !m_handle.done(); }
+			T value() const { return m_handle.promise().value; }
+		private:
+			handle_type m_handle;
+		}
+		
+Chapter 22: Parallel Algorithms with the STL
+	<execution> header
+	std::execution::par_unseq: Supports both parallel and vectorized execution
+	
