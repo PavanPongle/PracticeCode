@@ -138,4 +138,518 @@ Chapter 3, CPU Architecture, Resources, and Performance Implications
 		
 
 Chapter 4, Memory Architecture and Performance
+	1. It should be noted that there is another reason why adding more independent variables, inputs, or outputs, could impact the performance: the CPU could be running out of registers in which to store these variables for computations. 
+	2. We can see the cache sizes in these graphs: the L1 cache of 32 KB is fast, and the read speed does not depend on the data volume as long as it all fits into the L1 cache. As soon as we exceed 32 KB of data, the read speed starts to drop
+	3. SSE and AVX load instructions read values into different registers than the regular loads,
+	4. writing large words is more efficient than frequently writing small words
+	5. Memory performance optimizations in hardware
+		1. it doesn't matter how many bytes we requested, we have to wait for 7 nanoseconds to get anything, as one cycle of memeory takes 7 ns
+		2. Thus, the latency is no longer the limiting factor, the bandwidth is
+		3. similar to branch prediction learning, there is learning for memory access pattern and in advance those memory will be prefetched
+		4. The prefetch can start reading the next value before we need it and thus cut down the average read time, but only if it guesses correctly what that value is
+		5. 
+	6. Optimizing memory performance
+		1. Memory-efficient data structures
+		std::deque (unfortunately, the implementation in most STL versions is not particularly efficient, and sequential accesses to the deque are usually somewhat slower than to the vector of the same size)
+		2. try to keep hot code and hot data in consecutively to get memory benefit
+		3. perf stat -e \cycles,instructions,L1-dcache-load-misses,L1-dcache-loads \./program
+		4. use more memory do less computation vs do more computation use less memory
+		5. The idea here is to try to fit the current working data set into one of the caches, say, the L2 cache, and do as much work on it as possible before moving to the next section of the data.
+		6. Spectre attack 
+		7.  __rdtscp(&i); // GCC/Clang intrinsic function
+		e time-stamp counter (TSC), which is a hardware counter that counts the number of cycles since some point in the past. Using the cycle count as a timer typically results in noisier measurements, but the timer itself is faster
+		
 Chapter 5, Threads, Memory, and Concurrency
+	1. Symmetric multi-threading
+		1. If the processor has spare computing units, can't it execute another thread at the same time to improve efficiency? This is the idea behind Symmetric Multi-Threading (SMT), also known as hyper-threading.
+		2. An SMT-capable processor has a single set of registers and computing units, but two (or more) program counters and an extra copy of whatever additional hardware it uses to maintain the state of a running thread
+		3. throughput is increasing as number of threads are increasing until it reach the L3 cache size as data size
+		4. Memory performance purely depend on memory bus bandwidth, not on cache size or number of threads
+	2. Memory-bound programs and concurrency
+		1. for small data sets that fit into L1 or L2 cache, the memory speed per thread remains almost the same even for 16 threads. However, as soon as we cross into the L3 cache or exceed its size, the speed goes down .
+		2. The implementation techniques that are useful here are splitting computations so more work can be done on smaller data sets that fit into L1 or L2 caches
+		3. rearranging the computations so more work can be done with fewer memory accesses, often at the expense of repeating some computations; 
+	3. Understanding the cost of memory synchronization
+		1. 23 nanoseconds for a mutex-guarded increment versus 7 nanoseconds for the atomic increment
+		2. Based on benchmark results local is more faster than all, then comes false sharing, then shared using atomic
+		3. The minimum amount of data that can be copied from memory to cache and back is called a cache line. On all x86 CPUs, one cache line is 64 bytes
+		4. if two CPUs are allowed to write the same cache line into memory at the same time, one of them will overwrite the other
+		5. CPU requests exclusive access to one array element for the duration of the atomic increment operation, it locks the entire cache line and prevents any other CPU. A update must be send to all other CPU once done.
+		6. when lock is modified then those info should be sent to all CPU (if they holding old memory of it)
+		7. the standard C++ mutex, std::mutex, is usually quite large, between 40 and 80 bytes depending on the OS.
+		8. for accumulate try to store result in array whose element alighed in 64 bytes, to avoid false sharing
+	4. Memory order and memory barriers
+		1. In reality, the CPU is only changing the content of its cache; the cache and memory hardware eventually propagate these changes to the main memory or the shared higher-level cache, 
+		2. memory order is the feature of hardware it get activated when used particular instruction
+		3. both the compiler and the hardware can reorder instructions, usually to improve the performance.
+		4. the above diagram shows, whatever execution CPU0 has done in a order, it is not necessary that CPU1 should see it in same order, CPU1 can also see it in different order also. this is exclusively true about only relax memory order but is not true with other memory order.
+		5. if we don't use memory order to then compiler can optimise code such way that, the producer will increament the atomic value and then produce new element, in such when consumer read the data then undefined behaviour can happen to prevent such optimisation memory ordering is used, where consumer see the increament in atomic value only when all prior production of object is done
+		6.  If the producer uses acquire-release order to increment the count, but the consumer reads it with relaxed memory order, there are no guarantees on the visibility of any operations
+		7. On the producer side, we need one-half of the guarantee given by the acquire-release memory barrier (half-barriers): all operations executed before the atomic operation with the barrier must become visible to other threads before they execute the corresponding atomic operation.
+		8. On the one hand, we have the guarantee that everything that is done by the producer to build the new object before it increments the count is already visible to the consumer as soon as this increment is seen. But this is not enough, so, on the other hand, we have the guarantee that the operations executed by the consumer to process this new object cannot be moved backward in time, to a moment before the barrier when they could have seen the object in an unfinished state.
+		9. Default memory model is sequential consistency.
+		10. note mutex use the acquire barrier in lock method and use release barrier in unlock method due to this sync is achieved.
+		11. before c++11 memory model provided by OS are used to achieve synchronisation in multi threading programs
+		12. language and the compiler are not all that defined the memory model. The hardware has a memory model
+		
+Section 2 – Advanced Concurrency
+Chapter 6, Concurrency and Performance
+	1. Locks, alternatives, and their performance
+		1. in C++, there is no atomic multiplication
+		2. read-modify-write operation. This operation is known as compare-and-swap, or, in C++, as compare_exchange.
+		3. compare_exchange_strong. There is also compare_exchange_weak; the difference is that the weak version can sometimes return false even when the current and the expected values match
+		4. In a wait-free program, each thread is executing the operations it needs and is always making progress toward the final goal; there is no waiting for access, and no work needs to be redone.
+	2. Different locks for different problems
+		1. class Spinlock {
+			  public:
+			  Spinlock() : flag_(0) {}
+			  void lock() {
+				static const timespec ns = { 0, 1 };
+				//if the old value id 1, and we set it to 1, nothing happens and loop continue
+				for (int i = 0; flag_.load(std::memory_order_relaxed) || flag_.exchange(1, std::memory_order_acquire); ++i) {
+				  if (i == 8) {
+					i = 0;
+					nanosleep(&ns, NULL);
+				  }
+				}
+			  }
+			  void unlock() { flag_.store(0, std::memory_order_release); }
+			  private:
+			  std::atomic<unsigned int> flag_;
+			};
+		The atomic_load() function orders memory access according to memory_order_seq_cst; atomic_load_explicit() orders them as specified by order 
+		The exchange is a read-modify-write operation, if we use only exchange then  when it read the value, which triggers the cache update to all cpus, to optimise it we have used load operation.
+	3. lock-based programs suffer problem called convoying. The tasks of thread A rush through the execution like trucks in a convoy, while nothing gets done on other threads
+	4. in lock free programing no deadlock and no convoying problem as no thread gets blocked and there is no chance of prio Eity inversion it continues when cas operation successful
+	5. Building blocks for concurrent programming
+		1.  pointer spinlock
+			class Ptrlock {
+			  public:
+			  Ptrlock(std::atomic<unsigned long*>& p) : p_(p), p_save_(NULL) {}
+			  unsigned long* lock() {
+				static const timespec ns = { 0, 1 };
+				unsigned long* p = nullptr;
+				//if the value of pointer is null pointer then the lock is acquired
+				for (int i = 0; !p_.load(std::memory_order_relaxed) || !(p = p_.exchange(NULL, std::memory_order_acquire)); ++i) {
+				  if (i == 8) {
+					i = 0;
+					nanosleep(&ns, NULL);
+				  }
+				}
+				return p_save_ = p;
+			  }
+			  void unlock() { p_.store(p_save_, std::memory_order_release); }
+			  private:
+			  std::atomic<unsigned long*>& p_;
+			  unsigned long* p_save_;
+			};
+			One obvious advantage of the pointer spinlock is that, as long as it provides the only way to access the guarded object, it is not possible to accidentally create a race condition and access the shared data without a lock
+		2. Average CPU time used by different implementations of the thread-safe counter
+			ptr_spinlock < atomic < cas < mutex
+		3. Atomic index, and atomic count implementation
+		4. Read write spin lock
+			class rw_spinlock {
+			  public:
+
+			  void lock() {
+				while (true) {
+				  if (flag_.fetch_sub(idle, std::memory_order_acquire) == idle) return; // flag_ == 0
+				  flag_.fetch_add(idle, std::memory_order_relaxed);    // Undo the lock
+				  for (int i = 0; flag_.load(std::memory_order_relaxed) != idle; ) {
+					nanosleep(i);
+				  }
+				}
+			  }
+			  
+			  void unlock() {
+				flag_.fetch_add(idle, std::memory_order_release);
+			  }
+			  
+			  void lock_shared() {
+				while (true) {
+				  if (flag_.fetch_sub(1, std::memory_order_acquire) > 0) return; // flag_ >= 0
+				  flag_.fetch_add(1, std::memory_order_relaxed);    // Undo the lock
+				  for (int i = 0; flag_.load(std::memory_order_relaxed) <= 0; ) {
+					nanosleep(i);
+				  }
+				}
+			  }
+			  
+			  void unlock_shared() {
+				flag_.fetch_add(1, std::memory_order_release);
+			  }
+			  private:
+			  // Bit 63 - exclusive lock flag
+			  // Bits 0-62 - read lock count
+			  // 0x0000000000000000 - locked for writing HEX value
+			  // 0x1000000000000000 - unlocked
+			  // 0x0FFFFFFFFFFFFFFF - locked by 1 reader
+			  static constexpr long idle = 0x1000000000000000L;
+			  std::atomic<long> flag_ { idle };
+			};
+			// 0 means exclusive lock
+			// 0x1000000000000000 if this is last value then its ready to lock
+			// 0 means exclusive lock, so if decreased by 1 then negative so cannot lock shared
+	6. Publishing protocol
+		1. All consumers access a particular set of data through one root pointer. 
+		2. The producer can prepare the data any way it wants, but the root pointer remains null
+		3. When the producer wants to publish the data, it sets the root pointer to the correct address atomically and with a release barrier. 
+		4. The consumer threads must read the root pointer atomically and with an acquire barrier. 
+	7. Smart pointers for concurrent programming
+		1. Publishing pointer
+		template <typename T>
+		class ts_unique_ptr {
+			public:
+				// only imp things here
+				~ts_unique_ptr() { delete p_.load(std::memory_order_relaxed); }
+				void publish(T* p) noexcept { p_.store(p, std::memory_order_release); }
+				const T* get() const noexcept { return p_.load(std::memory_order_acquire); }
+				ts_unique_ptr& operator=(T* p) noexcept { this->publish(p); return *this; }
+			private:
+				std::atomic<T*> p_ { nullptr };
+		};
+		for Publishing Protocol there are 2 problems one at while constructing the pointer and while at deletion of it,
+		
+		2. Atomic shared pointer
+		template <typename T>
+		class ts_unique_ptr {
+			using ptr_t = std::shared_ptr<T>;
+			public:
+				void publish(ptr_t p) noexcept { std::atomic_store_explicit(&p_, p, std::memory_order_release); }
+				const T* get() const noexcept { return std::atomic_load_explicit(&p_, std::		memory_order_acquire).get(); }
+				const T& operator*() const noexcept { return *this->get(); }
+				ts_unique_ptr& operator=(ptr_t p) noexcept { this->publish(p); return *this; }
+			private:
+			ptr_t p_;
+		};
+		In C++20, we can do just that: it lets us write std::atomic<std::shared_ptr<T>>. 
+		
+		3. https://github.com/PacktPublishing/The-Art-of-Writing-Efficient-Programs/blob/master/Chapter06/04_intr_shared_ptr_mbm.C
+		check the implementation of shared pointer
+		
+Chapter 7, Data Structures for Concurrency
+	1. The thread-safe stack
+		1. why to prefer composition over inheritance good example, it tells drawbacks of inheritance from stack class while writing multi threaded stack
+		2. Only the operations that modify the stack need to be locked. 
+			using std::shared_mutex (exclusive lock on push() & pop() and read on top()) can be implemented, using spin lock also.
+		3. all we need is a single atomic value for the top index:
+		4. Again, there is no need to protect the construction step from other threads. The atomic index is all we need to make the push operations thread-safe
+		5. based on hardware the performance of spin lock or atomic operation differs, so we should check the characteristics of hardware and benchmark the algo then only choose what to use
+		6. Lock-free stack
+			1. First of all, neither push nor pop can proceed if the two indices are currently not equal different counts imply that either a new element is being constructed or the current top element is being copied out. Any stack modification in this state may lead to the creation of holes in the array
+			2. If the two indices are equal, then we can proceed. (common for top, pop, push operation) 
+			3. To do the push, we need to atomically increment the producer index p_. Then we can construct the new element in the slot we just reserved. Then we increment the consumer index c_ to indicate that the new element is available to the consumer threads. 
+			4. The pop is implemented similarly, only we first decrement the consumer index c_ to reserve the top slot, and then decrement p_ after the object is copied or moved from the stack
+			5. We have to read both indices in a single atomic operation
+			6. C++ allows us to declare an atomic struct of two integers; however, we must be careful: very few hardware platforms have a double CAS instruction that operates on two long integers atomically, and even then, it is usually very slow. The better solution is to pack both values into a single 64-bit word (on a 64-bit processor).
+			7. Lock-free stack:
+			c_ is the index of the last fully constructed element, and p_ is the index of the first free slot in the array
+			
+			template <typename T> void reset(T& s) { T().swap(s); }
+
+			template <typename T>
+			class mt_stack
+			{
+				//Underlaying container
+				std::deque<T> s_;
+
+				int cap_ = 0; //capacity
+				struct counts_t { 
+					int pc_ = 0; // Producer count, push
+					int cc_ = 0; // Consumer count, pop and top
+					bool equal(std::atomic<counts_t>& n) {
+						if (pc_ == cc_) return true;
+						*this = n.load(std::memory_order_relaxed);
+						return false;
+					}
+				};
+				
+				mutable std::atomic<counts_t> n_;
+			public:
+				mt_stack(size_t n = 100000000) : s_(n), cap_(n) {}
+				
+				// check pc_ == cc_ 
+				// inc pc index, add a value , then inc consumer value
+				void push(const T& v) { // push is done on pc index
+					// Reserve the slot for the new object by advancing the producer count.
+					counts_t n = n_.load(std::memory_order_relaxed);
+					if (n.pc_ == cap_) abort();
+					
+					int i = 0;
+					// !n.equal(n_) is for just to check it is not been modified by another thread i.e pc_ == cc_
+					// and wait until other thread finish the work
+					while (!n.equal(n_) || !n_.compare_exchange_weak(n, {n.pc_ + 1, n.cc_}, std::memory_order_acquire, std::memory_order_relaxed)) {
+						if (n.pc_ == cap_) abort();
+						nanosleep(i);
+					};
+					// Producer count advanced, slot n.pc_ + 1 is ours.
+					++n.pc_;
+					new (&s_[n.pc_]) T(v);
+
+					// Advance the consumer count to match.
+					if (!n_.compare_exchange_strong(n, {n.pc_, n.cc_ + 1}, std::memory_order_release, std::memory_order_relaxed)) abort();
+				}
+				
+				// check pc_ == cc_ 
+				// dec consumer value, destroy obj then dec pc value
+				std::optional<T> pop() {
+					// Decrement the consumer count.
+					counts_t n = n_.load(std::memory_order_relaxed);
+					if (n.cc_ == 0) return std::optional<T>(std::nullopt);
+					int i = 0;
+					while (!n.equal(n_) || !n_.compare_exchange_weak(n, {n.pc_, n.cc_ - 1}, std::memory_order_acquire, std::memory_order_relaxed)) { 
+						if (n.cc_ == 0) return std::optional<T>(std::nullopt);
+						nanosleep(i);
+					};
+					
+					// Consumer count decremented, slot n.cc_ - 1 is ours.
+					--n.cc_;
+					std::optional<T> res(std::move(s_[n.pc_]));
+					s_[n.pc_].~T();
+
+					// Decrement the producer count to match.
+					if (!n_.compare_exchange_strong(n, {n.pc_ - 1, n.cc_}, std::memory_order_release, std::memory_order_relaxed)) abort();
+					return res;
+				}
+				
+				// check pc_ == cc_ 
+				// dec cc value, take backup of top, inc cc again
+				std::optional<T> top() const {
+					// Decrement the consumer count.
+					counts_t n = n_.load(std::memory_order_relaxed);
+					if (n.cc_ == 0) return std::optional<T>(std::nullopt);
+					int i = 0;
+					
+					while (!n.equal(n_) || !n_.compare_exchange_weak(n, {n.pc_, n.cc_ - 1}, std::memory_order_acquire, std::memory_order_relaxed)) { 
+						if (n.cc_ == 0) return std::optional<T>(std::nullopt);
+						nanosleep(i);
+					};
+					
+					// Consumer count decremented, slot n.cc_ - 1 is ours.
+					--n.cc_;
+					std::optional<T> res(std::move(s_[n.pc_]));
+
+					// Restore the consumer count.
+					if (!n_.compare_exchange_strong(n, {n.pc_, n.cc_ + 1}, std::memory_order_release, std::memory_order_relaxed)) abort();
+					return res;
+				}
+				void reset() { ::reset(s_); s_.resize(cap_); }
+			};
+			
+	2. The thread-safe queue
+		1. Using spinlock
+		2. Using atomic, as both front and back are different in queue, so pop(), push() won't be interfering with each other, only size variable need to update according to operations. std::atomic<size_t> size_;
+		template <typename T>
+		class pc_queue {
+			public:
+				bool push(const T& v) {
+					....
+					size_.fetch_add(1, std::memory_order_release);
+				}
+				std::optional<T> pop() {
+					....
+					size_.fetch_sub(1, std::memory_order_relaxed);
+				}
+
+			private:
+				const size_t capacity_;
+				T* const data_;
+				size_t front_ = 0;
+				size_t back_ = 0;
+				std::atomic<size_t> size_;
+		};
+				
+		2. Lock-free queue
+			1. Using 2 pointers, producer and consumer it can be implemented.
+			2. also, we can use queue per therad	
+	3. The thread-safe list
+		1. Use each node pointer as atomic, and use compare and exchage to validate the pointer value is not changed.
+		2. A-B-A problem if deleted memory is reused.
+		3. For node deletion use, The popular and often very efficient RCU (read-copy-update) technique is a variant of this method as well. Another common approach is the use of hazard pointers.
+		4. If you benchmark only insertions and deletions at the head of the list (push_front() and pop_front()), the spinlock-guarded list will be faster (atomic shared pointers are not cheap)
+		
+Chapter 8, Concurrency in C++
+	1. Concurrency support in C++17
+		1. std::lock, std::scope_lock, std::shared_mutex, std::hardware_destructive_interference_size, and std::hardware_constructive_interference_size
+		2. std::execution::par_unseq. The standard says that the unsequenced policy allows computations to be interleaved within a single thread, which allows additional optimizations such as vectorization.
+		3. Incase of std::for_each(std::execution::par_unseq, However, we cannot use an unsequenced policy here: if the same thread were to process multiple vector elements at the same time (interleaved), it could attempt to acquire the same lock multiple times. This is a guaranteed deadlock: 
+	2. Concurrency support in C++20
+		1. The foundations of coroutines
+			1. stackless coroutine on heap this allocation is called the activation frame. 
+			2. C++20 with the --std=c++20 option is not enough). For GCC, the option is –fcoroutines
+		2. Coroutine examples
+			1. co_yield operator suspends the coroutine and returns the value i to the caller
+			2. the coroutine terminates when the control reaches the closing brace
+			3. exit the coroutine at any point by executing statement co_return
+			4. struct generator, 5 compulsory function
+			Any function defined in generator class is not compulsory
+			Only 5 Things compulsory in promise struct
+			From main function, we can operate on promise type alone
+			5. yield_value(), is invoked every time the operator co_yield is called
+			6. initial_suspend() function is called by the compiler the first time co_yield is encountered. The final_suspend() function is called after the coroutine produces its last result via co_return;
+			7. Operator co_await suspends the function and returns the control to the caller. without return value.
+			8. 
+
+			template <typename T>
+			struct generator
+			{
+			  struct Promise;
+
+			  // compiler looks for promise_type
+			  using promise_type = Promise;
+			  std::coroutine_handle<Promise> h_;
+
+			  generator(std::coroutine_handle<Promise> h) : h_(h) {}
+
+			  ~generator()
+			  {
+				if (h_)
+				  h_.destroy();
+			  }
+
+			  // get current value of coroutine
+			  int value()
+			  {
+				return h_.promise().val;
+			  }
+
+			  // advance coroutine past suspension
+			  bool next()
+			  {
+				h_.resume();
+				return !h_.done();
+			  }
+
+			  struct Promise
+			  {
+					// current value of suspended coroutine
+					T val;
+
+					// called by compiler first thing to get coroutine result
+					generator get_return_object() // 1.
+					{
+					  return generator{std::coroutine_handle<Promise>::from_promise(*this)};
+					}
+
+					// called by compiler first time co_yield occurs
+					std::suspend_always initial_suspend() // 2.
+					{
+					  return {};
+					}
+
+					// required for co_yield
+					std::suspend_always yield_value(T x) // 3.
+					{
+					  val = x;
+					  return {};
+					}
+
+					// called by compiler for coroutine without return
+					std::suspend_never return_void() 
+					{
+					  return {};
+					}
+
+					void unhandled_exception() {} // 4.
+
+					// called by compiler last thing to await final result
+					// coroutine cannot be resumed after this is called
+					std::suspend_always final_suspend() noexcept // 5.
+					{
+					  return {};
+					}
+			  };
+			};
+
+			generator<int> coro(int n)
+			{
+
+			  for (int i = 0; i < n; ++i)
+			  {
+				co_yield i;
+			  }
+			}
+
+			int main()
+			{
+			  int n = 10;
+
+			  generator gen = coro(n);
+
+			  for (int i = 0; i < n; ++i)
+			  {
+				gen.next();
+				printf("%d ", gen.value());
+			  }
+
+			  return 0;
+			}
+
+			9. await_ready(): it is called after the coroutine is suspended
+			10. await_resume(), it is called just before the coroutine continues to execute after it is resumed
+			11. 
+			struct awaitable {
+				bool await_ready() { return false; }
+				void await_suspend(std::coroutine_handle<> h) {
+				void await_resume() {}
+			};
+		
+Section 3 – Designing and Coding HighPerformance Programs
+Chapter 9, High-Performance C++
+	1. How RVO acheived, The address of this memory is passed into the function by the compiler, where it is used to construct the local variable 
+	2. while the named RVO (NRVO) is still an optimization, the unnamed RVO is mandatory since C++17
+	3. even if the function makeC is in a separate compilation unit, RVO still takes place. The compiler, therefore, must send the address of the result to the function at the call point. 
+	4. The bottom line is: interact with the OS as little as possible
+	5.  use an allocator with thread-local caches, such as the popular malloc() replacement library TCMalloc. These allocators reserve some amount of memory for each thread: when a thread needs to allocate memory, it is taken from the thread-local memory arena first. 
+	6. The key advantage of the fixed-size block allocation is that it does not suffer from fragmentation
+	7. That first-in-first-out property is also an advantage: the last 64 KB memory block is likely to be from the most recently used memory and is still hot in the cache. Reusing this block immediately improves memory reference locality and, therefore, makes more efficient use of the cache. 
+	8. a good program will typically have less than 0.1% of mispredicted branches. The misprediction rate of 1% is quite large.
+
+Chapter 10, Compiler Optimizations in C++
+	1. AVX2 instruction set on x86, for example, can add 8 integers at once)
+	2. Global and shared variables are terrible for optimization
+	3. The compiler can also see that the calls to crbegin() and crend() do not modify the vector (if you are concerned about destroying an object through a const_iterator, think how const objects are destroyed). This entire loop, therefore, can be eliminated.
+		for (auto it = crbegin(); it != crend(); ++it) it->~T();
+	4. ~S() {} // Probably optimized away
+	5. if the class declaration only declares the destructor like the following:
+			.... ~S(); ...
+		and the definition is provided in a separate compilation unit, then the compiler has to generate a function call for each vector element. 
+	6. the greatest impact of virtual functions on performance is that (unless the compiler can devirtualize the call) they cannot be inlined.
+	7. int f(const std::vector<int>& v, const bool& b) 
+	even b is const and not changed inside the function but it is passed by ref so changes that it could be changed outside of this function and compiler cannnot rule that out, so every time compiler has to fetch the value of b to optimise it, if we know it is never gona change then do as in below example.
+		const bool b = bool(t);
+	giving indication to compiler t value never change
+	8. The lesson here is simple, in theory, but quite hard in practice: if you know something about your program that the compiler cannot know to be true, you must assert it in a way the compiler can use
+	9. const int y = x;
+	by just adding const y, we given hint to compiler that value of a and be going to increment by same amount, means after increament of a it doesn't require to read value of x again, it can reuse old value one time read of x is saved
+	Note: whenever there is reference value in parameter then compiler is suppose to read it agian before using it, if you know it will not change then use const copy of it
+	10. Lifting knowledge from runtime to compile time
+		1. From 
+			if (op == do_shrink) s.shrink();
+			else s.grow();
+			To
+			if (op == do_shrink) process<do_shrink>(v);
+			else process<do_grow>(v);
+			The compiler will eliminate the branch, and the corresponding dead code, in each template instantiation.
+				
+Chapter 11, Undefined Behavior and Performance
+	1. The standard further says that if the behavior is undefined, the standard imposes no requirements on the results.
+	2. The C++ Standard has three related and often confused categories of behavior: implementation-defined, unspecified, and undefined. 
+	3. Overflow of unsigned integers is well defined, hence it generate more code, so give less performance compared to signed int
+	4. The most reliable way to avoid accidentally running into this problem is to always use signed loop variables or use the unsigned integer of the size native to the hardware (so, avoid doing unsigned int math on 64-bit processors unless you really need it). 
+	5. With this in mind, what can be recommended with regard to the use of const to promote optimization?
+		1. If a value is not changing, declare it as const. 
+		2. constexpr
+		3. For small types, pass-by-value can be more efficient than pass-by-reference
+	6. Using undefined behavior for efficient design
+	
+Chapter 12, Design for Performance
+	1. From the point of view of efficiency, this is not the best way: we are using a random access iterator for sequential iteration. Generally, when you use a more powerful or more capable interface but utilize only a fraction of its capabilities, you should be concerned about efficiency: the extra flexibility of this interface may have come at the cost of some performance, which you are wasting if you do not use these features
+	2. Let us consider std::deque: it is a block-allocated container that supports random access. In order to access arbitrary element i, we have to first calculate which block contains this element (generally, a modulo operation) and the index of the element within the block, then find the address of the block in the auxiliary data structure (block pointer table) and index into the block.
+	3. Traversal of std::deque using index versus iterator, iterator is very faster. The deque iterator can store the block pointer or the index of the right entry in the block pointer table, which would make accessing all elements within one block much cheaper. 
+	4. we used index based implementation just to check whether value is present or not, not accessing the value, the use case is different hence more efficient here is indexing.
+	5. never implement a (public) member function for a task that does not require privileged access and can be implemented entirely through an existing public API.
+	6. API design for concurrency
+		1. for optimum performance, it is often better to provide weaker guarantees on low-level interfaces. The approach chosen by the STL is a fine example to follow: all methods that may change the state of the object offer the weak guarantee: the program is well-defined as long as only one thread is using the container at any time
+		2. design and interface such that it can be used in both multi threaded environment and not, this can be done by providing lock as optional parameter for single thread environment, it will use null pointer for lock hence no locking
+		3. 
