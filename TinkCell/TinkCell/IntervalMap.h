@@ -19,7 +19,23 @@ public:
 	{
 		static_assert(!std::is_default_constructible<K>::value, "A is default constructible");
 		static_assert(!std::is_default_constructible<V>::value, "B is not default constructible");
+		static_assert(!std::is_nothrow_default_constructible<V>::value, "B is not default constructible");
+		static_assert(std::is_nothrow_copy_constructible<V>::value, "B is not default constructible");
+		static_assert(std::is_nothrow_move_constructible<V>::value, "B is not default constructible");
 
+
+		static_assert(std::is_copy_constructible<K>::value && std::is_move_constructible<K>::value,
+			"Key type K must support copy and move construction.");
+		static_assert(std::is_copy_assignable<K>::value && std::is_move_assignable<K>::value,
+			"Key type K must support copy and move assignment.");
+		static_assert(std::is_copy_constructible<V>::value && std::is_move_constructible<V>::value,
+			"Value type V must support copy and move construction.");
+		static_assert(std::is_copy_assignable<V>::value && std::is_move_assignable<V>::value,
+			"Value type V must support copy and move assignment.");
+		static_assert(std::is_same<decltype(std::declval<K>() < std::declval<K>()), bool>::value,
+			"Key type K must implement operator<.");
+		static_assert(std::is_same<decltype(std::declval<V>() == std::declval<V>()), bool>::value,
+			"Value type V must implement operator==.");
 	}
 
 	// Assign value val to interval [keyBegin, keyEnd).
@@ -29,27 +45,13 @@ public:
 	// If !( keyBegin < keyEnd ), this designates an empty interval,
 	// and assign must do nothing.
 
-
 	template<typename V_forward>
 	void assign(K const& keyBegin, K const& keyEnd, V_forward&& val)
 		requires (std::is_same<std::remove_cvref_t<V_forward>, V>::value)
 	{
-
 		// invalid case
 		if (!(keyBegin < keyEnd))
 		{
-			return;
-		}
-
-		//limit is whole map
-		const auto& k_low = std::numeric_limits<K>::lowest();
-		const auto& k_max = std::numeric_limits<K>::max();
-		if (!(k_low < keyBegin) && !(keyBegin < k_low) &&
-			!(k_max < keyEnd) && !(keyEnd < k_max))
-		{
-			m_map.clear();
-			m_valBegin = std::forward<V_forward>(val);
-
 			return;
 		}
 
@@ -59,8 +61,8 @@ public:
 			if (val == m_valBegin)
 				return;
 
-			[[discard]] m_map.insert_or_assign(K(keyBegin), std::forward<V_forward>(val));
-			[[discard]] m_map.insert_or_assign(K(keyEnd), std::forward<V_forward>(m_valBegin));
+			(void) m_map.emplace(keyBegin, std::forward<V_forward>(val));
+			(void) m_map.emplace(keyEnd, std::forward<V_forward>(m_valBegin));
 
 			return;
 		}
@@ -111,7 +113,6 @@ public:
 			// if previous node's value same as current range value then to avoid duplication of val, skip addition of keyBegin
 			if (is_key_end_presend && is_pre_key_begin_val_same)
 				return;
-
 		}
 
 		if (!is_key_end_presend)
@@ -125,14 +126,14 @@ public:
 
 			if (!(last_range_val == val))
 				// endKey not present in map, insert at end
-				new_key_end = m_map.insert_or_assign(key_end_bounds_l, keyEnd, last_range_val);
+				new_key_end = m_map.emplace_hint(key_end_bounds_l, keyEnd, last_range_val);
 		}
 
 		if (!is_pre_key_begin_val_same)
 		{
 			if (!is_key_begin_presend)
 			{
-				new_key_begin = m_map.insert_or_assign(key_begin_bounds_l, keyBegin, std::forward<V_forward>(val));
+				new_key_begin = m_map.emplace_hint(key_begin_bounds_l, keyBegin, std::forward<V_forward>(val));
 				is_key_begin_presend = true;
 			}
 			else if ((key_begin_bounds_u == m_map.end() && key_begin_bounds_l != m_map.begin()) ||
@@ -153,9 +154,8 @@ public:
 			std::advance(new_key_begin, 1);
 
 		m_map.erase(new_key_begin, new_key_end);
-		
 	}
-
+	
 	// look-up of the value associated with key
 	V const& operator[](K const& key) const {
 		auto it = m_map.upper_bound(key);

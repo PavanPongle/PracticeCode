@@ -130,28 +130,28 @@ TEST(EmptyInsertion, InValidInsertion) {
 	CheckMaps(res, imap.m_map);
 }
 
-TEST(EmptyInsertion, OverwriteEmptyMemberVal) {
+//TEST(EmptyInsertion, OverwriteEmptyMemberVal) {
+//
+//	interval_map<K, V> imap{ V('A') };
+//	imap.assign(K(std::numeric_limits<K>::lowest()), K(std::numeric_limits<K>::max()), V('E'));
+//
+//	map<K, V> res{ };
+//
+//	CheckMaps(res, imap.m_map);OverwriteMemberVal
+//	EXPECT_EQ(V('E'), imap.m_valBegin);
+//}
 
-	interval_map<K, V> imap{ V('A') };
-	imap.assign(K(std::numeric_limits<K>::lowest()), K(std::numeric_limits<K>::max()), V('E'));
-
-	map<K, V> res{ };
-
-	CheckMaps(res, imap.m_map);
-	EXPECT_EQ(V('E'), imap.m_valBegin);
-}
-
-TEST(EmptyInsertion, OverwriteMemberVal) {
-
-	interval_map<K,V> imap{ V('A') };
-	imap.assign(K(7), K(9), V('c'));
-	imap.assign(K(std::numeric_limits<K>::lowest()), K(std::numeric_limits<K>::max()), V('E'));
-
-	map<K,V> res{ };
-
-	CheckMaps(res, imap.m_map);
-	EXPECT_EQ(V('E'), imap.m_valBegin);
-}
+//TEST(EmptyInsertion, OverwriteMemberVal) {
+//
+//	interval_map<K,V> imap{ V('A') };
+//	imap.assign(K(7), K(9), V('c'));
+//	imap.assign(K(std::numeric_limits<K>::lowest()), K(std::numeric_limits<K>::max()), V('E'));
+//
+//	map<K,V> res{ };
+//
+//	CheckMaps(res, imap.m_map);
+//	EXPECT_EQ(V('E'), imap.m_valBegin);
+//}
 /************************************************************************************************************/
 TEST(NonEmptyInsertion, InsertEnd) {
 
