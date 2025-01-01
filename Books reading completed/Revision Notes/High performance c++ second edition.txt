@@ -87,3 +87,50 @@ Chaper 1 : Introduction
 		
 		
 3 Analyzing and Measuring Performance
+	1.  std::midpoint use ful for binary search
+	2. Latency/response time: time between the request and the response of an operation
+	3.  A task is said to be CPU bound if it would run faster if the CPU were faster. It's said to be I/O bound if it would run faster by making the I/O faster.
+	4.  Intel provides a powerful tool called VTune, which can be used for monitoring performance counters. FreeBSD offers pmcstat. macOS comes with DTrace and Xcode Instruments. Microsoft Visual Studio provides support for collecting CPU counters on Windows.
+	5. Instrumentation profilers, adding code in code for measurement
+	6. steady_clock is monotonic, which means that it will never decrease between two consecutive calls to clock_type::now(). System clock can be adjsuted.
+	7. Sampling profilers, some logic may not be running at that moment
+	8. Pitfalls of microbenchmarking
+		1.  compiler might optimize isolated code differently compared to how it is optimized in the full program
+		2. Unrealistic test data can have an impact on branch prediction when running the benchmark.
+		3. Results between multiple measurements might vary because of factors such as frequency scaling, cache pollution, and the scheduling of other processes.
+		4.  tested online on the page http://quick-bench.com without the need for any installation.
+		5.  benchmark::DoNotOptimize()
+		BENCHMARK(bm_linear_search)->RangeMultiplier(2)->Range(64, 256);
+		BENCHMARK_MAIN();
+		6.  let the framework estimate the time complexity of our functions. This can be done by providing the input size to the state object using the SetComplexityN() function
+	
+4 Data Structures
+	1.  potentially already resides in the cache will make your program faster. This is known as temporal locality
+	2.  spatial locality, benifit of accessing data located near some other data.
+	3. Constantly wiping out the cache lines is cache thrashing
+	4. Person(Person&& other) {         // Will be copied 
+	Person(Person&& other) noexcept { // Will be moved
+	due to strong exception safety
+	5.  std::vector uses std::move_if_noexcept in order to determine whether the object should be copied or moved.
+	6. C++ 20,  std::erase() and std::erase_if(), is combination of erase-remove idiom
+	7.  std::list is a doubly linked list and for singly linked list  std::forward_list
+	8. Always use the specialized functions, such as contains() and empty(), instead of using count() > 0 or size() == 0. The specialized functions are guaranteed to be the most efficient ones.
+	9. Hash function using boost
+	
+    #include <boost/functional/hash.hpp>
+	auto person_hash = [](const Person& person) { 
+	  auto seed = size_t{0};
+	  boost::hash_combine(seed, person.name()); 
+	  boost::hash_combine(seed, person.age()); 
+	  return seed;
+	};
+		
+    using Set = std::unordered_set<Person,
+	decltype(person_hash),                                decltype(person_eq)>;
+	10. Priority queue syntax
+	auto queue = std::priority_queue<Hit, std::vector<Hit>,                                    decltype(cmp)>{cmp};
+	11. Before C++20, the recommended way was to use lower_bound(), since it only returns the first matching element. Now, with C++20 and the introduction of contains(), we can express our intent more clearly and also be sure that the library will provide us  with the most efficient implementation when we only want to check for existence of an element:
+	12. By using parallel arrays, we simply split the large structures into smaller types(better for searching) ,  But instead of using pointers to relate objects, we store the smaller structures in separate arrays of equal size. The smaller objects in the different arrays that share the same index form the complete original object.
+	
+5 Algorithms
+	1. 
