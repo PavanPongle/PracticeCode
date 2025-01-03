@@ -133,4 +133,112 @@ Chaper 1 : Introduction
 	12. By using parallel arrays, we simply split the large structures into smaller types(better for searching) ,  But instead of using pointers to relate objects, we store the smaller structures in separate arrays of equal size. The smaller objects in the different arrays that share the same index form the complete original object.
 	
 5 Algorithms
-	1. 
+	1. std::ranges::for_each, std::ranges::transform, std::ranges::fill(v, -1), std::ranges::generate(v, std::rand); std::ranges::sort,  std::ranges::find
+	2. If we know that the collection is already sorted, we can use one of the binary search algorithms: binary_search(), equal_range(), upper_bound(), or lower_bound()
+	3. std::clamp(v, lo, hi); If the value of v is within [lo, hi], returns v; otherwise returns the nearest boundary.
+	4. minmax()
+	5. Type with below constraint can be called as range
+		template<class T>
+		concept range = requires(T& t) {
+		  ranges::begin(t);
+		  ranges::end(t);
+		};
+	6.  A range with identical iterator and sentinel types fulfills the concept of std::ranges::common_range
+	7. Iterator arithmetic 
+		std::next
+		std::pre
+		std::advance
+	8. std::contiguous_iterator: The same as random access iterators, but also guarantees that the underlying data is a contiguous block of memory, such as std::string, std::vector, std::array, std::span, and the (rarely used) std::valarray
+	9.  std::remove() or std::unique() do not actually remove elements from a container (despite their names). Rather, it moves the elements
+	10. How insert iterator works in c++,  insert iterators call the container's insert() member function to add new elements.
+	auto dst_vec = std::back_inserter(squared_vec);
+	std::ranges::transform(v, dst_vec, square_func);
+	11. Three way operator
+    auto operator<=>(const Flower& f) const = default; 
+    bool operator==(const Flower&) const = default;
+	12. Use of projecctions, note we passed function address of size()
+		std::ranges::sort(names, std::less<>{}, &std::string::size);
+	13. difference std::pair vs std::tie, pair is for 2 values and tie is generalisation
+	14. Algorithms require move operators not to throw,  noexcept
+	15. std::ranges::subrange{first, sentinel};
+	16. The constrained algorithms under std::ranges introduced with C++20 offer some benefits over the iterator-based algorithms under std
+	17. std::nth_element, return nth element in provided range [bein, end), works on only sorted range, return nth element in sorted list, if not sorted then sort until nth element
+	18.  std::partial_sort(), sort the element in provided range. std::partial_sort(v.begin(), left, right);
+	19. Loop unrolling
+	
+		template <typename It, typename Value>
+		auto find_fast(It first, It last, const Value& value) {
+		  // Main loop unrolled into chunks of four
+		  auto num_trips = (last - first) / 4;
+		  for (auto trip_count = num_trips; trip_count > 0; --trip_count) {
+			if (*first == value) {return first;} ++first;
+			if (*first == value) {return first;} ++first;
+			if (*first == value) {return first;} ++first;
+			if (*first == value) {return first;} ++first;
+		  }
+		  // Handle the remaining elements
+		  switch (last - first) {
+			case 3: if (*first == value) {return first;} ++first;
+			case 2: if (*first == value) {return first;} ++first;
+			case 1: if (*first == value) {return first;} ++first;
+			case 0:
+			default: return last;
+		  }
+		}
+
+6. Ranges and Views
+	1. Views in the Ranges library are lazy evaluated iterations over a sequence.
+	2. 
+		auto squared_view = std::views::transform(numbers, square);
+		for (auto s : squared_view) {  // The square lambda is invoked here
+		  std::cout << s << " ";
+		}
+    The variable squared_view is not a copy of the numbers vector with the values squared; it is a proxy object for numbers with one slight difference—every time you access an element, the std::transform() function is invoked. This is why we say that a view is lazy evaluated.
+	3. std::views::join(list_of_lists)
+	4.  auto v1 = std::ranges::ref_view{s}; // Wrap container in a view
+	5. The construction of a view is required to be a constant-time operation, O(1).
+	6.  std::ranges::to<T>()
+	7. std::ranges::copy
+	8. std::ranges::sort, can be used only on actual container and cannot be used on another view;
+	The filter view (and many other views) cannot preserve the iterator types of the underlying range, so cannot use with ranges::sort();
+	
+		auto vec = std::vector{4, 2, 7, 1, 2, 6, 1, 5};
+		auto is_odd = [](auto i) { return i % 2 == 1; };
+		auto odd_numbers = vec | std::views::filter(is_odd);
+
+		std::ranges::sort(odd_numbers); // Doesn't compile
+		std::ranges::sort(vec); //compile
+		
+	9. So, are there any views that can be sorted? Yes, an example would be std::views::take, which returns the first n elements in a range.
+		auto vec = std::vector{4, 2, 7, 1, 2, 6, 1, 5};
+		auto first_half = vec | std::views::take(vec.size() / 2);
+		std::ranges::sort(first_half);
+		
+	10.  std::views::iota, which produces values within a half-open range.
+	11. Sampling views
+		  std::views::filter: 
+		  std::views::take: Returns the n first elements of a range
+		  std::views::drop: Returns all the remaining elements in a range after dropping the first n elements
+	12.  std::views::drop_while([](auto i) { return i < 5; })
+		 drop_while to discard values from the front that are less than 5
+	13.  std::span, we can pass both built-in arrays or a container such as std::vector
+	14.  std::ranges::common_view, common_view can be useful for working with legacy algorithms that expect the iterator and sentinel are of the same type.
+	
+7 Memory Management
+	1.  If the memory page is not mapped in the main memory, a hardware exception occurs, and the page is loaded from disk into memory. This type of hardware exception is called a page fault. So page fault is hardware exception.
+	2. Thrashing can happen when a system runs low on physical memory and is, therefore, constantly paging
+	3. On Windows, the default stack size is usually set to 1 MB.
+	4. instead of placement new, it is now possible to use some of the functions from <memory> whose names begin with std::uninitialized_ for constructing, copying, and moving objects to an uninitialized memory area.
+	5.  And instead of calling the destructor explicitly, we can now use std::destroy_at()
+		auto* memory = std::malloc(sizeof(User));
+		auto* user_ptr = reinterpret_cast<User*>(memory);
+		std::uninitialized_fill_n(user_ptr, 1, User{"john"});
+		std::destroy_at(user_ptr);
+		std::free(memory);
+	6. Another replacement to placement new is std::construct_at
+		C++20 also introduces std::construct_at(), which makes it possible to replace the std::uninitialized_fill_n() call with:
+		std::construct_at(user_ptr, User{"john"});
+	7. Note syntax
+		auto operator new[](size_t size) -> void*
+		auto operator delete[](void* p) noexcept -> void
+	8. 

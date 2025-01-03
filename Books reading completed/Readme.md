@@ -18,6 +18,10 @@
 
 # 10. Data Structures and Algorithms with the C++ STL: A guide for modern C++ practitioners [Link](https://www.packtpub.com/en-us/product/data-structures-and-algorithms-with-the-c-stl-9781835468555)
 
+# 11. lecture_slides_for_linux_system_programming-0.0 [Link](https://www.ece.uvic.ca/~frodo/cppbook/downloads/lecture_slides_for_linux_system_programming-0.0.pdf)
+
+Pending One
+# 12. PerformanceAnalysisAndTuningOnModernCPUs_SecondEdition [Link](https://github.com/dendibakh/perf-book/releases/download/2.0_release/PerformanceAnalysisAndTuningOnModernCPUs_SecondEdition.pdf)
 
 
 
