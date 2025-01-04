@@ -23,5 +23,8 @@
 Pending One
 # 12. PerformanceAnalysisAndTuningOnModernCPUs_SecondEdition [Link](https://github.com/dendibakh/perf-book/releases/download/2.0_release/PerformanceAnalysisAndTuningOnModernCPUs_SecondEdition.pdf)
 
+Robert Sedgewick: Algorithms in C++, Parts 1-4: Fundamentals, Data Structure, Sorting, Searching
+
+Herb Sutter: Exceptional C++, More Exceptional C++, C++ Coding Standards
 
 

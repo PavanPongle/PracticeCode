@@ -241,4 +241,369 @@ Chaper 1 : Introduction
 	7. Note syntax
 		auto operator new[](size_t size) -> void*
 		auto operator delete[](void* p) noexcept -> void
-	8. 
+	8. The CPU reads memory into its registers one word at a time. The word size is 64 bits on a 64-bit architecture, 32 bits on a 32-bit architecture, but cache read the bytes equivalent to cache line, i.e 64 bytes.
+	9. If memory is not aligned then program will crash
+	10.  if we want to write fully portable C++ code, we need to use std::align()
+	11. std::align basically adjust the pointer by checking size requirement 
+		
+		bool is_aligned(void* ptr, std::size_t alignment) {
+		  assert(ptr != nullptr);
+		  assert(std::has_single_bit(alignment)); // Power of 2
+		  auto s = std::numeric_limits<std::size_t>::max();
+		  auto aligned_ptr = ptr;
+		  std::align(alignment, 1, aligned_ptr, s);
+		  return ptr == aligned_ptr;
+		}
+		
+	12.  std::max_align_t, whose alignment requirement is at least as strict as all the scalar types
+		auto* p = new char{}; 
+		auto max_alignment = alignof(std::max_align_t);
+		assert(is_aligned(p, max_alignment)); // True
+	13. Both char are separate by std::max_align_t, it could be 16, 
+		The space between p1 and p2 depends on the alignment requirements of std::max_align_t
+		auto* p1 = new char{'a'};
+		auto* p2 = new char{'b'};
+	14. 
+		assert(is_aligned(&x, 64));
+		struct alignas(64) CacheLine {};
+		alignas(64) int x{};
+		alignas(64) int y{};
+		// x and y will be placed on different cache lines
+	15. C++17 introduced new overloads of operator new() and operator delete() which accept an alignment argument of type std::align_val_t. There is also an aligned_alloc()
+	16.  The member with the largest alignment requirement also determines the alignment requirement for the entire data structure
+	17. As a general rule, you can place the biggest data members at the beginning and the smallest members at the end. In this way, you can minimize the memory overhead caused by padding
+	18. Weak pointer 
+		if (auto shared_i = weak_i.lock())
+	19. Note how the implementation of small buffer optimization structure in std::string
+		which bit is used for indication of layout small or long
+		union
+		{
+			struct
+			{
+				 char* Arr;
+				 size_t Count;
+				 size_t Capacity; // last bit indicator
+			}Data;
+			char Raw[24]; // last bit indicator
+		};
+		For heap-allocated strings, always set the upper and lower 8 bits of capacity to 0xFF. Again this gives you 48 bits to use for capacity information, which is more than enough. This has the advantage of working in any byte order.
+	20. Building an arena
+		1. Used when, Fixed size, Limited lifetime, single thread
+		
+		template <size_t N> 
+		class Arena { 
+		  static constexpr size_t alignment = alignof(std::max_align_t); 
+		public: 
+		  Arena() noexcept : ptr_(buffer_) {} 
+		  Arena(const Arena&) = delete; 
+		  Arena& operator=(const Arena&) = delete;
+		   
+		 
+		  auto reset() noexcept { ptr_ = buffer_; } 
+		  static constexpr auto size() noexcept { return N; } 
+		  auto used() const noexcept {
+			return static_cast<size_t>(ptr_ - buffer_); 
+		  } 
+		  auto allocate(size_t n) -> std::byte*; 
+		  auto deallocate(std::byte* p, size_t n) noexcept -> void; 
+		   
+		private: 
+		  static auto align_up(size_t n) noexcept -> size_t { 
+			return (n + (alignment-1)) & ~(alignment-1); 
+		  } 
+		  auto pointer_in_buffer(const std::byte* p) const noexcept -> bool {
+			return std::uintptr_t(p) >= std::uintptr_t(buffer_) &&
+				   std::uintptr_t(p) < std::uintptr_t(buffer_) + N;
+		  } 
+		  alignas(alignment) std::byte buffer_[N]; 
+		  std::byte* ptr_{}; 
+		};
+		
+		
+		template<size_t N> 
+		auto Arena<N>::allocate(size_t n) -> std::byte* { 
+		  const auto aligned_n = align_up(n); 
+		  const auto available_bytes =  
+			static_cast<decltype(aligned_n)>(buffer_ + N - ptr_); 
+		  if (available_bytes >= aligned_n) { 
+			auto* r = ptr_; 
+			ptr_ += aligned_n; 
+			return r; 
+		  } 
+		  return static_cast<std::byte*>(::operator new(n)); 
+		}
+		
+		As a side note, relationally comparing raw pointers to disjoint objects is undefined behavior; this might be used by an optimizing compiler and result in surprising effects. To avoid this, we are casting the pointers to std::uintptr_t before comparing the addresses
+		
+		template<size_t N> 
+		auto Arena<N>::deallocate(std::byte* p, size_t n) noexcept -> void { 
+		  if (pointer_in_buffer(p)) { 
+			n = align_up(n); 
+			if (p + n == ptr_) { 
+			  ptr_ = p; 
+			} 
+		  } 
+		  else { 
+			::operator delete(p);
+		  }
+		}
+		 
+	21. A custom memory allocator
+		A minimal allocator in C++11 now looks like this:
+			template<typename T> 
+			struct Alloc {  
+			    using value_type = T; 
+			    Alloc(); 
+			    template<typename U> Alloc(const Alloc<U>&); 
+			    T* allocate(size_t n); 
+			    auto deallocate(T*, size_t) const noexcept -> void; 
+			}; 
+			template<typename T> 
+				auto operator==(const Alloc<T>&, const Alloc<T>&) -> bool;   
+			template<typename T> 
+				auto operator!=(const Alloc<T>&, const Alloc<T>&) -> bool;
+	22.  std::allocator_traits
+	23. Must requirements
+		1. allocate, deallocate, ==, != 
+	
+		template <class T, size_t N> 
+		struct ShortAlloc { 
+		 
+		  using value_type = T; 
+		  using arena_type = Arena<N>; 
+		  
+		  // default copy move assignment == != removed from this to minimize the change
+		  template <class U> struct rebind {
+			using other = ShortAlloc<U, N>;
+		  };
+		  auto allocate(size_t n) -> T* {
+			return reinterpret_cast<T*>(arena_->allocate(n*sizeof(T)));
+		  }
+		  auto deallocate(T* p, size_t n) noexcept -> void {
+			arena_->deallocate(reinterpret_cast<std::byte*>(p), n*sizeof(T));
+		  }
+
+		  template <class U, size_t M> friend struct ShortAlloc;
+		private:
+		  arena_type* arena_;
+		};
+	24. Using polymorphic memory allocators,  <memory_resource> header
+		1.  all standard containers under the namespace std::pmr use the same allocator, namely std::pmr::polymorphic_allocator
+		2.  All memory resources derive from the base class std::pmr::memory_resource
+		3. 3 types
+			1. std::pmr::synchronized_pool_resource, thread safe
+			2. std::pmr::monotonic_buffer_resource, simlar to Arena, variable size allcation memory
+			3. std::pmr::unsynchronized_pool_resource :  fixed-size memory blocks, which avoids fragmentation within each pool.  not thread-safe.
+		4. How to get allocator of different types
+			std::pmr::new_delete_resource(): Uses the global operator new and operator delete.
+			std::pmr::null_memory_resource(): A resource that always throws std::bad_alloc whenever it is asked to allocate memory.
+			std::pmr::get_default_resource(): Returns a globally default memory resource that can be set at runtime by set_default_resource(). The initial default resource is new_delete_resource()
+		5. Usage
+				auto buffer = std::array<std::byte, 512>{};
+				auto resource = std::pmr::monotonic_buffer_resource{
+					buffer.data(), buffer.size(), std::pmr::new_delete_resource()};
+				auto unique_numbers = std::pmr::set<int>{&resource};
+		6. Implementing a custom memory resource, similar to shown in 24.3
+			 We need to publicly inherit from std::pmr::memory_resource and then implement three pure virtual functions that will be invoked
+			1. allocate, 2. deallocate, 3. do_is_equal
+			
+			class PrintingResource : public std::pmr::memory_resource {
+			public:
+			  PrintingResource() : res_{std::pmr::get_default_resource()} {}
+			private:
+			  void* do_allocate(std::size_t bytes, std::size_t alignment)override {
+				std::cout << "allocate: " << bytes << '\n';
+				return res_->allocate(bytes, alignment);
+			  }
+			  void do_deallocate(void* p, std::size_t bytes,
+								 std::size_t alignment) override {
+				std::cout << "deallocate: " << bytes << '\n';
+				return res_->deallocate(p, bytes, alignment);
+			  }
+			  bool do_is_equal(const std::pmr::memory_resource& other) 
+				const noexcept override {
+				return (this == &other);
+			  }
+			  std::pmr::memory_resource* res_;  // Default resource
+			};
+			
+			auto res = PrintingResource{};
+			auto vec = std::pmr::vector<int>{&res};
+
+8 Compile-Time Programming
+	1. Remove, C V qualifier, decay also does same thing
+		typename std::remove_cvref<decltype(v)>::type product{1};
+	2. Type trait categories
+		1.  return information about a type as a boolean
+		2.  return a new type
+	3. std::is_base_of<>::::value, std::is_floating_type<>::value, std::is_same<>::value, std::is_unsigned	
+	4. All _v are replaced by ::value
+	5. Transform types	
+		std::remove_pointer_t<int*>;  // -> int
+		std::add_pointer_t<float>;    // -> float*
+	6. constexpr does not work on local static and thread_local
+	7.  consteval
+	8. if constexpr, eveluate at compile time used in SFINE
+		if (std::is_floating_point_v<T>) { return std::fmod(v, n); }
+		else { return v % n; }
+	9.  % operator is used to get the modulus of integers, while std::fmod() is used for floating-point types.
+	10. Constraints and concepts
+		1. template <typename T>
+			concept Number = FloatingPoint<T> || std::is_integral_v<T>;
+					
+			concept range = requires(T& t) {
+			  ranges::begin(t);
+			  ranges::end(t);
+			};
+			
+			template <typename T>
+			concept Point = requires(T p) {
+			  requires std::is_same_v<decltype(p.x()), decltype(p.y())>;
+			  requires Arithmetic<decltype(p.x())>;
+			};
+		2. Wherever typename is we can replace it with concept
+		3.  std::equality_comparable,  std::totally_ordered,  std::moveable, std::copyable,  std::regular
+		4. Example 1: creating a generic safe cast function
+			1. ##IMP If casting between pointers with a static_cast(), we might get undefined behavior if the types aren't sharing a common base class.
+			2.  we utilize the template function make_false<T>() to delay the generation until required.
+		
+			template <typename T> constexpr auto make_false() { return false; }
+			template <typename Dst, typename Src> 
+			auto safe_cast(const Src& v) -> Dst { 
+			  using namespace std;
+			  constexpr auto is_same_type = is_same_v<Src, Dst>;
+			  constexpr auto is_pointer_to_pointer =  
+				is_pointer_v<Src> && is_pointer_v<Dst>; 
+			  constexpr auto is_float_to_float =  
+				is_floating_point_v<Src> && is_floating_point_v<Dst>; 
+			  constexpr auto is_number_to_number =  
+				is_arithmetic_v<Src> && is_arithmetic_v<Dst>; 
+			  constexpr auto is_intptr_to_ptr = 
+				(is_same_v<uintptr_t,Src> || is_same_v<intptr_t,Src>)
+				&& is_pointer_v<Dst>;
+			  constexpr auto is_ptr_to_intptr =
+				is_pointer_v<Src> &&
+				(is_same_v<uintptr_t,Dst> || is_same_v<intptr_t,Dst>);
+				
+			  if constexpr(is_same_type) { 
+				return v; 
+			  }
+			  else if constexpr(is_intptr_to_ptr || is_ptr_to_intptr){
+				return reinterpret_cast<Dst>(v); 
+			  } 
+			  else if constexpr(is_pointer_to_pointer) { 
+				assert(dynamic_cast<Dst>(v) != nullptr); 
+				return static_cast<Dst>(v); 
+			  } 
+			  else if constexpr (is_float_to_float) { 
+				auto casted = static_cast<Dst>(v); 
+				auto casted_back = static_cast<Src>(v); 
+				assert(!isnan(casted_back) && !isinf(casted_back)); 
+				return casted; 
+			  }  
+			  else if constexpr (is_number_to_number) { 
+				auto casted = static_cast<Dst>(v); 
+				auto casted_back = static_cast<Src>(casted); 
+				assert(casted == casted_back); 
+				return casted; 
+			  } 
+			  else {
+				static_assert(make_false<Src>(),"CastError");
+				return Dst{}; // This can never happen, 
+				// the static_assert should have failed 
+			  }
+			}
+		5. Custom hash function
+			1. we need this custom hash type having operator()
+			struct hash<PrehashedString> {
+			  constexpr auto operator()(const PrehashedString& s) const {
+				return s.get_hash();
+			  }
+			};
+			
+			For custom class we only require operator ==, hashing is done in hash type
+			operator ==
+			
+			For map we require only operator <()
+
+9 Essential Utilities
+	1.  Trying to access the value of an empty optional using operator*() or operator->() is undefined behavior. use has_value()
+	2. Two empty optional values are considered equal. An empty optional is considered less than a non-empty.
+	3. tuple expand to compiler generated struct. Accessing member  std::get<0>(t) 			
+		// The Tuple class is generated first:
+		class Tuple { 
+		  int data0_{};
+		  bool data1_{};
+		public:
+		  Tuple(int v0, bool v1) : data0_{v0}, data1_{v1} {} 
+		};
+		
+		// get<0>(Tuple) is then generated to something like this:
+		auto& get(const Tuple& tpl) { return data0_; }
+	4. Iterating std::tuple members
+		 Then, since the tuple contains different types, we need to write a meta-function that generates a new function for every type in the tuple.
+		 
+		template <size_t Index, typename Tuple, typename Func> 
+		void tuple_at(const Tuple& t, Func f) {
+		  const auto& v = std::get<Index>(t);
+		  std::invoke(f, v);
+		}
+
+		auto t = std::tuple{1, true, std::string{"Jedi"}};
+		auto f = [](const auto& v) { std::cout << v << " "; };
+		tuple_at<0>(t, f);
+
+
+		template <typename Tuple, typename Func, size_t Index = 0> 
+		auto tuple_any_of(const Tuple& t, const Func& f) -> bool { 
+		  constexpr auto n = std::tuple_size_v<Tuple>; 
+		  if constexpr(Index < n) { 
+			bool success = std::invoke(f, std::get<Index>(t)); 
+			if (success) {
+			  return true;
+			}
+			return tuple_any_of<Tuple, Func, Index+1>(t, f); 
+		  } else { 
+			return false; 
+		  } 
+		}
+	5. std::tie(), returns tuple
+	6. 
+		template<typename ...Ts> 
+		auto f(Ts... values) {
+		  g(values...);
+		}
+
+		Ts is a list of types
+		<typename ...Ts> indicates that the function deals with a list
+		values... expands the pack such that a comma is added between every value
+	7. Dynamically sized heterogenous collections
+		1.  std::any uses heap allocation, NOTE: it is not fixed size, can grow to any number
+			auto container = std::vector<std::any>{42, "hi", true};
+			if (a.type() == typeid(int)) {
+			const auto& value = std::any_cast<int>(a);
+		2. std::varient uses stack, its like union
+			std::variant works in a somewhat similar manner to a tuple, except that it only stores one object at a time
+			std::variant is typically the size of the biggest alternative, plus the size of the index.
+			It store the index to idetify type
+			
+			using VariantType = std::variant<int, std::string, bool>; 
+			VariantType v{}; 
+			std::holds_alternative<int>(v);  // true, int is first alternative
+			v = 7; 
+			std::holds_alternative<int>(v);  // true
+			
+			if (var.valueless_by_exception()) {  // to check the value is present or not
+		3. Visiting varient
+			in C++17
+			
+			template<class... Lambdas>
+			struct Overloaded : Lambdas... {
+			  using Lambdas::operator()...;
+			};
+			
+			In c++20
+			template<class... Lambdas> 
+			Overloaded(Lambdas...) -> Overloaded<Lambdas...>;
+		4.  There are two ways to instantiate std::get(), with an index or with a type:
+		5. Example 1: projections and comparison operators
