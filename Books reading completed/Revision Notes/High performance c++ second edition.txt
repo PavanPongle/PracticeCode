@@ -607,3 +607,217 @@ Chaper 1 : Introduction
 			Overloaded(Lambdas...) -> Overloaded<Lambdas...>;
 		4.  There are two ways to instantiate std::get(), with an index or with a type:
 		5. Example 1: projections and comparison operators
+
+10 Proxy Objects and Lazy Evaluation
+	1.  bool operator==(const LengthProxy& other) const = default; 
+		auto operator<=>(const LengthProxy& other) const = default;
+		we require this much only for <=>
+11 Concurrency
+	1. std::thread::hardware_concurrency, 
+    2. std::jthread  
+		void print(std::stop_token stoken)  // compiler passes stop_token values in parameter value
+		while (!stoken.stop_requested());
+		
+		auto joinable_thread = std::jthread(print); // here we have not passed explicitly value of stop_token as argument
+		joinable_thread.request_stop();
+	3.  std::scoped_lock vs std::lock_guard
+		std::scoped_lock use deadlock prevention algo, can be used with std::lock
+	4. cv.wait(lock); // The lock is released while waiting 
+		wait() also unlocks the mutex while sleeping and then acquires the mutex before it returns.
+		wait is over means it enter in critical section, so acquires lock
+	5.  std::counting_semaphore, std::barrier, and std::latch,  std::binary_semaphore
+	6.  auto p = std::promise<int>{}; 
+		std::thread(divide, 45, 5, std::ref(p)).detach();
+		 
+		p.set_exception(std::make_exception_ptr(e));
+		p.set_value();
+		
+		auto f = p.get_future();
+		f.get();
+	7. auto task = std::packaged_task<decltype(divide)>{divide}; 
+		auto f = task.get_future();
+		std::packaged_task is itself a callable object that can be moved to the std::thread
+	8.  std::async();
+		const auto& result = future.get();
+		sometimes delayed execution until future.get() is called
+	9. Using latches
+		1.  auto lat = std::latch{8};
+			lat.count_down(); // Decrement but don't wait
+			if (lat.try_wait())
+			lat.wait();
+			lat.arrive_and_wait(); // Decrement and block while not zero
+		2. When a thread is created, a contiguous block of memory is allocated for the stack. Typically, this memory does not yet reside in physical memory when it is first allocated in the virtual address space. Instead, when the stack is being used, page faults will be generated in order to map the virtual memory to physical memory
+		3.  The stack memory is unlikely to be paged out by the operating system, so it is usually enough to run some code that will generate page faults and thereby map the virtual stack memory to physical memory. This process is called prefaulting
+		4. cannot be resued
+	10. Using barriers
+		1.  when the internal counter of the barrier reaches zero) two things happens:
+			The completion function provided to the constructor is called by the barrier.
+			The internal counter is reset to its initial value after the completion function has returned.
+		2. we can declare, 
+			  static thread_local auto engine = 
+				std::default_random_engine{std::random_device{}()};
+			  auto dist = std::uniform_int_distribution<>{min, max};
+			  return dist(engine);
+		3. auto bar = std::barrier{n, check_result};
+			bar.arrive_and_wait();       // Join
+	11. Semaphore
+		std::counting_semaphore<4> sem_{4};
+		sem_.acquire(); -- , blocks when it is 0
+		sem_.release(); ++ , inc and then send notification to acquire thread.
+		 without blocking using the try_acquire(),  try_acquire_for() and try_acquire_until()
+	12. std::binary_semaphore = std::counting_semaphore<1>;
+	13. Having virtual function disqualify for trivallay copyable 
+		static_assert(std::atomic<int>::is_always_lock_free);
+	14. An atomic type that is guaranteed to always be lock-free is std::atomic_flag
+	15. Fortunately, C++20 added a wait and notify API to std::atomic
+	16. in shared pointer only ref counting mechanism is thread safe
+	17.  std::shared_ptr (introduced in C++20
+	18.  std::atomic_ref was introduced in C++20.
+	19. Memeory Model
+		1. When acquiring a mutex, we are creating an acquire memory fence. It tells the system that no memory accesses (reads or writes) can be moved above the line where the acquire fence is located.
+		2. reference counter in a std::shared_ptr uses a relaxed model when incrementing the counter (but not when decrementing the counter).
+		3. A good way of controlling the number of threads is to use a thread pool that can be sized to match the current hardware.
+		4. Thread priorities are important for lowering the latency of tasks.
+	20. One phenomenon related to thread priorities that can hurt the performance, and should be avoided, is called priority inversion. It happens when a thread with high priority is waiting to acquire a lock that is currently held by a low-priority thread. Such dependencies hurt the high-priority thread, which is blocked until the next time the low-priority thread gets scheduled so that it can release the lock.
+	21. 
+		#include <pthreads> // Non-portable header 
+		auto set_affinity(const std::thread& t, int cpu) {
+		  cpu_set_t cpuset;
+		  CPU_ZERO(&cpuset);
+		  CPU_SET(cpu, &cpuset);
+		  pthread_t native_thread = t.native_handle(); 
+		  pthread_set_affinity(native_thread, sizeof(cpu_set_t), &cpuset); 
+		}
+	22.  std::hardware_destructive_interference_size
+	
+		struct alignas(std::hardware_destructive_interference_size) Element {
+		   int counter_{};
+		};
+
+12 Coroutines and Lazy Generators
+	1. Instead of blocking, co_await suspends the execution until it gets resumed and the asynchronous read and write functions have completed
+	2. fibers are stack based coroutine or called as light weight threads in java
+	3. In summary, stackful coroutines demand a big initial memory allocation for the coroutine frame and the side stack, or need to support a growing stack. Stackless coroutines only  need to allocate memory for the coroutine frame.
+	4.  Switching between coroutines is substantially faster than switching between processes and OS threads
+	5.  stackful coroutine has a more expensive context switch operation since it has more information to save and restore during suspend and resume compared to a stackless coroutine.
+	6.  The stackless coroutines in C++20 were designed with the following goals:
+		1. Add very little memory overhead. This makes it possible to have many more coroutines alive
+		2. Efficient context switching
+		3. Highly flexible. C++ coroutines have more than 15 customization points,
+		4. Do not require C++ exceptions to handle errors. This means that you can use coroutines in environments where exceptions are turned off.
+	7. co_await: co_yield: co_return std::coroutine_handle std::suspend_never: std::suspend_always:
+      std::coroutine_traits
+	8. A C++ function is a coroutine if it contains any of the keywords co_await, co_yield, or co_return
+	9. Four components, 
+		1. main -> it will have generator<promise> obj, and it will call a method from generator class
+		2. coroutine defination -> return generator<promise>, has co_wait/co_return/co_yield
+		3. generator class -> has std::coroutine_handle<Promise> h_, 
+		4. promise struct -> has 5 compulsory methods
+	10.  promise_type = Promise, compiler needs it to generate code.
+	11. 
+		struct Promise {
+		  auto get_return_object() { return Resumable{*this}; }
+		  auto initial_suspend() { return std::suspend_always{}; }
+		  auto final_suspend() noexcept { return std::suspend_always{}; }
+		  void return_void() {}
+		  void unhandled_exception() { std::terminate(); }
+		};
+	12.  std::suspend_never
+		struct std::suspend_always {
+		  constexpr bool await_ready() const noexcept { return false; }
+		  constexpr void await_suspend(coroutine_handle<>) const noexcept {}
+		  constexpr void await_resume() const noexcept {}
+		};
+		
+		auto coroutine() -> Resumable {       
+			std::cout << i_++ << " ";         
+			co_await std::suspend_always{};
+			std::cout << i_++ << " ";
+		}
+	13.  It's also possible to create coroutines using lambda expressions by inserting co_await, co_return, and/or co_yield in the body of a lambda.
+	14. Some usages of lambdas make it really easy to accidentally destruct the function object before the coroutine frame is destroyed. For example, by using an immediately invoked lambda, we can easily get into trouble:
+		
+		auto coro = [i = 0]() mutable -> Resumable { 
+		  std::cout << i++; 
+		  co_await std::suspend_always{};
+		  std::cout << i++;
+		}();               // Invoke lambda immediately
+		coro.resume();     // Undefined behavior! Function object
+		coro.resume();     // already destructed
+		
+		auto coro = LambdaType{}(); // Invoke operator() on temporary object
+		coro.resume();              // Ops! Undefined behavior
+	15. get from  std::current_exception() set in unhandled_exception() 
+	16. std::lerp(start, stop, amount), which computes the linear interpolation between two values with a specified amount.
+
+13 Asynchronous Programming with Coroutines --> skipped
+	1. await_ready() returns a bool that indicates whether the result is ready
+
+14 Parallel Algorithms
+	1. Divide and conquer
+		We will here implement another version of a parallel transform algorithm using divide and conquer. It works as follows: if the input range is smaller than a specified threshold, the range is processed; otherwise, the range is split into two parts:
+			The first part is processed on a newly branched task
+			The other part is recursively processed at the calling thread
+	2. Example implementation of parallel transform
+		
+		template <typename SrcIt, typename DstIt, typename Func>
+		auto par_transform(SrcIt first, SrcIt last, DstIt dst,
+						   Func func, size_t chunk_sz) {
+		  const auto n = static_cast<size_t>(std::distance(first, last));
+		  if (n <= chunk_sz) {
+			std::transform(first, last, dst, func); // this is where actual operation happening, rest is diving the task into multiple chunks and collecting result at last
+			return;
+		  }
+		  const auto src_middle = std::next(first, n / 2);
+		  // Branch of first part to another task
+		  auto future = std::async(std::launch::async, [=, &func] {
+			par_transform(first, src_middle, dst, func, chunk_sz);
+		  });
+		  // Recursively handle the second part
+		  const auto dst_middle = std::next(dst, n / 2);
+		  par_transform(src_middle, last, dst_middle, func, chunk_sz);
+		  future.wait(); 
+		}
+	3. Implementing parallel std::count_if(), it is conditional count
+		same as par_transform, except  std::count_if(first, last, pred);
+	4. Implementing parallel std::copy_if() : parallel copy from source to destination, if condition matches then only
+		1.  we immediately run into problems as we cannot write to the destination iterator concurrently. with the above arroach, it is a failed attempt with undefined behavior, since both tasks will write to the same position in the destination range:
+		
+			Approach 1: Use a synchronized write position
+				i.e using  auto dst_write_idx = std::atomic_size_t{0};
+				but it cause false sharing and trashing
+			Approach 2: 
+				1. make chunk for each thread, each thread will copy in its range only.
+				2. when all thread finish, there will be empty blocks in each range where element did not match and skipped to copy, so now we have to squash the range.  Move the sparse range sequentially into a continuous range. use 2 pointer method.
+	5. Unsequenced policy
+		The unsequenced policy was added in C++20. It tells the algorithm that the loop is allowed to be vectorized using, for example, SIMD instructions. In practice, this means that you cannot use any synchronization primitives in the code you pass to the algorithm, since this could result in deadlocks.
+		
+		auto v = std::vector<std::string>{"Ada", "APL" /* ... */ };
+		auto tot_size = size_t{0};
+		auto mut = std::mutex{};
+		std::for_each(std::execution::par, v.begin(), v.end(),
+					  [&](const auto& s) { 
+			auto lock = std::scoped_lock{mut}; // Lock
+			tot_size += s.size(); 
+		  }                                    // Unlock
+		);
+		
+		This code is now safe to execute using std::execution::par, but it is very inefficient. If we were to change the execution policy to std::execution::unseq, the result would not only be an inefficient program but also a program that runs the risk of deadlocking!
+		The unsequenced execution policy tells the algorithm that it may reorder the instruction of our code in a way that is normally not allowed by the optimizing compiler.
+	6. std::transform_reduce()
+		As an addition to the standard library algorithms, std::transform_reduce() has also been added to the <numeric> header. It does exactly what it says: it transforms a range of elements as std::transform() and then applies a function object. This accumulates them out of order, like std::reduce():
+			auto v = std::vector<std::string>{"Ada","Bash","C++"}; 
+			auto num_chars = std::transform_reduce( 
+			  v.begin(), v.end(), size_t{0}, 
+			  [](size_t a, size_t b) { return a + b; },     // Reduce
+			  [](const std::string& s) { return s.size(); } // Transform 
+			); 
+			// num_chars is 10
+	7. Executing algorithms on the GPU
+		 However, the parallel execution policies std::execution::par and std::execution::par_unseq allow compilers to move the execution of standard algorithms from the CPU to the GPU. One example of this is NVC++, the NVIDIA HPC compiler. It can be configured to compile standard C++ algorithms for execution on NVIDIA GPUs.
+	8. std::reduce is parallel version of std::accumulate
+		const std::array<int, 3> a{ 1, 2, 3 };
+		//The default binary operation is std::plus with an initial value of 0.
+		std::reduce(std::cbegin(a), std::cend(a)); // == 6
+		// Using a custom binary op:
+		std::reduce(std::cbegin(a), std::cend(a), 1, std::multiplies<>{}); // == 6
