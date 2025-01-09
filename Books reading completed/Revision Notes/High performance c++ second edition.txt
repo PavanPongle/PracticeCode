@@ -693,6 +693,7 @@ Chaper 1 : Introduction
 		struct alignas(std::hardware_destructive_interference_size) Element {
 		   int counter_{};
 		};
+	23. std::atomic_flag::test_and_set : Atomically changes the state of a std::atomic_flag to set (true) and returns the value it held before.
 
 12 Coroutines and Lazy Generators
 	1. Instead of blocking, co_await suspends the execution until it gets resumed and the asynchronous read and write functions have completed

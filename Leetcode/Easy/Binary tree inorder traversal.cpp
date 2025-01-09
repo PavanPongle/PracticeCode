@@ -23,6 +23,7 @@
 
 
 */
+
 class Solution {
 public:
     vector<int> inorderTraversal(TreeNode* root) {
@@ -33,7 +34,7 @@ public:
         TreeNode* curr  = root;
 
         // Hint , below function is similar to recursive one
-        while(curr || mstack.empty() == false)
+        while(curr || !mstack.empty())
         {
             while(curr)
             {

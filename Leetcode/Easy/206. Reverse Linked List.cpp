@@ -27,6 +27,6 @@ public:
             p = head;
             head = tmp;
         } 
-        return p;
+        return p; // note, we are returning the previous value not temp/head value
     }
 };

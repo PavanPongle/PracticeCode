@@ -45,7 +45,7 @@ public:
 // logic 2.
 // sort the array
 // use two pointers, and go on fiding sum of 2 numbers equal to k, 
-// if sum less than k then increase the left index, else increase right index
+// if sum less than k then increase the left index, else decrease right index
         sort(nums.begin(), nums.end());
         for(int i = 0, j = nums.size() - 1; i < j ;)
         {

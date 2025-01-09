@@ -28,10 +28,10 @@ public:
        int len = flowerbed.size();
 
         for (int i = 0; i < len; i++) {
-            bool left = i == 0 || flowerbed[i - 1] == 0;
-            bool right = i == len - 1 || flowerbed[i + 1] == 0;
+            bool left = (i == 0 || flowerbed[i - 1] == 0); // when i = 0, it will not evaluate flowerbed[i - 1], preventing crash
+            bool right = (i == len - 1 || flowerbed[i + 1] == 0); // when i = len -1, it will not evaluate flowerbed[i + 1], preventing crash
 
-
+			// when pre and nxt both are zero then we can place inbetween
             if (left && right && flowerbed[i] == 0) {
                 flowerbed[i] = 1;
                 n--;

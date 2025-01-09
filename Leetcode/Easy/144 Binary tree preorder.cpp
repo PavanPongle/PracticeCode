@@ -76,6 +76,7 @@ public:
             // then travel to left, means first push right then left
             v.push_back(x->val);
 
+			//Note we first push right not a left one
             if(x->right)
                 s.push(x->right);
 

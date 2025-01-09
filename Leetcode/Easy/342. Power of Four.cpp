@@ -33,6 +33,7 @@ public:
         double param, fractpart, intpart;
         // log4 is not available in c++ so using log2
         // follwed by checking if it is divisiable by 4
+		//General form: \(x=log_{2}N\) or \(2^{x}=N\)
         param = log2(n);
 
         if((int)param % 4 == 0.0)

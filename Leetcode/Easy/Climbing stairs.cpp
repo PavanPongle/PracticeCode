@@ -25,6 +25,7 @@ Constraints:
 
 1 <= n <= 45
 
+// Note this problem can be solved usign by generating a tree and traversing it 
 
 class Solution {
 public:
@@ -35,15 +36,15 @@ public:
         // lets solve using dynamic programming
         // where we need solution for ith step then we have to know the 
         // solution for i-1 and i-2 steps( as we have steps 1 and 2)
-        // if we have steps like 1,2,3 then i = (i -1) + (i -3) + (i-3) etc.
+        // if we have steps like 1,2,3 then i = (i -1) + (i -2) + (i-3) etc.
 
-        vector<int> steps = {1, 2};
+        vector<int> steps = {1, 2}; // this is for generalisation, we can do {1,2,3} if 3 steps
 
         int count = 0;
         vector<int> dp(n+1, 0);
         dp[0] = 1; // The base cases (0 and 1 steps) are initialized to 1 since there is only one way to reach them.
-        dp[1] = 1; // when 1 steps has to climb
-        dp[2] = 2; // when 2 steps has to climb
+        dp[1] = 1; // when 1 steps has to climb, [1]
+        dp[2] = 2; // when 2 steps has to climb, [1,1], [2]
 
         for(int i = steps.size() ; i <= n; ++i)
         {
@@ -59,3 +60,4 @@ public:
         return dp[n];
     }
 };
+

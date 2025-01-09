@@ -31,6 +31,10 @@ The pivot index is 0.
 Left sum = 0 (no elements to the left of index 0)
 Right sum = nums[1] + nums[2] = 1 + -1 = 0
 
+// this can be solved using 2 pointer from low --> <--- high
+// iterate and inc low if prefix sum is smaller than right end sum so far
+// dec high if right end sum is smaller than left end sum so far
+
 class Solution {
 public:
     int pivotIndex(vector<int>& nums) {

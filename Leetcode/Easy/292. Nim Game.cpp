@@ -29,8 +29,8 @@ Output: true
 class Solution {
 public:
     bool canWinNim(int n) {
-        /*
-        Let's look at the basic case. If 1 or 2 or 3 stones left and it's my turn, I'm gonna win.
+/*
+    Let's look at the basic case. If 1 or 2 or 3 stones left and it's my turn, I'm gonna win.
 
 So how to guarantee this "win" status? That must be 4 stones left when it's my friend's turn. Because 4 - 1 = 3, 4 - 2 = 2, 4 - 3 = 1.
 */

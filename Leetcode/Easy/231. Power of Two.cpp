@@ -27,6 +27,8 @@ Constraints:
 
 Follow up: Could you solve it without loops/recursion?
 
+// we can solve using log2(N) alos, it is return the int then it is pow 
+
 class Solution {
 public:
     bool isPowerOfTwo(int n) {

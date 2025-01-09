@@ -43,12 +43,13 @@ class Solution {
 public:
 
     //This problem can be solved using the tree generation
-    // by generating leeaf nodes of possible solution we can reach out to solution
+    // by generating leaf nodes of possible solution we can reach out to solution
 
     // such tree can be traveled using DFS and BFS
 
     // 1. Using DFS
 
+	// Note unordered_set<int>& visited, it is set for uniqueness
     bool DFS(int x, int y, int target, int curr, unordered_set<int>& visited)
     {
         if(curr > (x+y) || curr < 0 || visited.find(curr) != visited.end())
@@ -68,8 +69,7 @@ public:
     }
 
     bool canMeasureWater(int x, int y, int target) {
-        
-
+  
         if(x + y < target)
             return false;
 
@@ -95,7 +95,7 @@ public:
         if (x == target || y == target || x + y == target)
             return true;
 
-        unordered_set<int> visited;
+        unordered_set<int> visited; // Note this is set, not a vector, it should be set, as we are adding 2 times
         queue<int> q;
         int max = x + y;
 		//Note this is imp, incase we have multiple jugs we can use such technique

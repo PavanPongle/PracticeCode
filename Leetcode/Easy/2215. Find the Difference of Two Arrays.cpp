@@ -41,7 +41,9 @@ public:
         res[1].reserve(nums2.size());
 
 // add in set and find the intersection of 2 sets, when elements match instead of adding it, skip it
-
+		// add smaller number first then increament counter
+		// if both are equal then increament both index
+		
         while (first1 != last1 && first2 != last2) {
             if (*first1 < *first2) {
                 res[0].push_back(*first1);
@@ -75,7 +77,7 @@ public:
     vector<vector<int>> findDifference(vector<int>& nums1, vector<int>& nums2) {
         vector<int> mark(2001, 0);
         for (const int& num : nums1)
-            mark[num + 1000] |= 1;
+            mark[num + 1000] |= 1; // | is binary or so it will add 01 | 10 = 11
         for (const int& num : nums2)
             mark[num + 1000] |= 2;
         vector<vector<int>> res(2);

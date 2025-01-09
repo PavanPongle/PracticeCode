@@ -34,9 +34,12 @@ class NumArray {
     vector<int> nums_;
 public:
     NumArray(vector<int>& nums) {
+		
         nums_.reserve(nums.size());
+		
         int summ = 0;
-        for (int n : nums) {
+        
+		for (int n : nums) {
             summ += n;
             nums_.push_back(summ);
         }

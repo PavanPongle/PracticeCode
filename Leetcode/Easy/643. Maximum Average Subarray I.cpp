@@ -14,6 +14,9 @@ Example 2:
 Input: nums = [5], k = 1
 Output: 5.00000
 
+// sliding window example
+// fixed size window
+
 class Solution {
 public:
     double findMaxAverage(vector<int>& nums, int k) {
@@ -28,7 +31,7 @@ public:
 
         maxSum = currSum;
         for (int i = k; i < nums.size(); ++i) {
-            currSum += nums[i] - nums[i - k];
+            currSum += nums[i] - nums[i - k]; // as it is fixed size,  so add current element and remove the first one in window
             if (maxSum < currSum) {
                 maxSum = currSum;
             }

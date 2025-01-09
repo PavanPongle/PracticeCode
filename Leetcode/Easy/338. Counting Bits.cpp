@@ -45,7 +45,7 @@ This approach is efficient because it avoids redundant calculations and utilizes
 class Solution {
 public:
     vector<int> countBits(int n) {
-        vector<int>dp(n+1,0);
+        vector<int>dp(n+1,0); // Note, initial dp vector is empty
         for(int i = 0 ; i<=n;i++)
         {
             if(i%2==0)

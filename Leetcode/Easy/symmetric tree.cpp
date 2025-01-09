@@ -39,8 +39,9 @@ public:
 
     /* Iterative Postorder Traversal to check if two binary
      * trees are identical */
+	 // same can be checked by DFS, BFS, and other tree traversal
     bool isMirror(TreeNode* r1, TreeNode* r2) {
-        stack<TreeNode*> stack1, stack2;
+        stack<TreeNode*> stack1 /*for tree one*/, stack2 /*for tree two*/;
 
         // loop until both trees are completely traversed
         while (r1 != NULL || !stack1.empty() || r2 != NULL || !stack2.empty()) {
@@ -58,6 +59,7 @@ public:
             // not identical
             if (stack1.size() != stack2.size())
                 return false;
+			
             // pop one node from each stack and compare their
             // data
             r1 = stack1.top();
@@ -66,7 +68,8 @@ public:
             stack2.pop();
             if (r1->val != r2->val)
                 return false;
-            // move to the right of the popped nodes
+            
+			// move to the right of the popped nodes
             r1 = r1->right;
             r2 = r2->left;
         }
@@ -77,6 +80,7 @@ public:
     // in case of same tree, we pass: left, left or right, right in recursion
     // but incase of mirror we pass: right, left or left, right
     // Note the difference
+	// to tree a mirror, node values sould match, it's both childern values should match
     bool isMirror(TreeNode* p, TreeNode* q) {
         if(!p && !q)    return true; // both are null
         if(!p || !q)    return false; // either is null

@@ -53,8 +53,8 @@ public:
         if(s.length() != t.length())
             return false;
 
-	unordered_map<char, char> mm;
-	unordered_set<char> alreadyMapped;
+	unordered_map<char, char> mm; // for string s
+	unordered_set<char> alreadyMapped; // for string t
 
 	for(int i = 0 ; i < s.length(); ++i)
 	{

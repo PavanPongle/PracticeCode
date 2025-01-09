@@ -26,7 +26,7 @@ Constraints:
 There are varities of problem for finding total subarray and max length subarray, both are different and 
 approach also different.
 
-current problem is no max subarrays
+current problem is no max subarrays, just subarray
 
 BF
 
@@ -54,7 +54,7 @@ public:
 };
 
 
-hash map
+//hash map
 
 class Solution {
 public:
@@ -80,7 +80,7 @@ public:
                 // will help us to get target when (k = sum - f)
                 ans += mm[f];
             }
-            mm[sum]++;
+            mm[sum]++; // Note we are increasing frequency
         }
 
         return ans;
@@ -97,7 +97,8 @@ public:
     int subarraySum(vector<int>& nums, int k) {
         
         // map of prefix sum vs index of it
-        map<int, int> mm;
+        map<int, int /*index*/> mm;
+		
         int sum = 0; // initial sum is 0, it is prefix
         int ans = 0; // variable to total count of subarrays
         mm[sum] = -1; // when sum = 0, such possiblity is 1 , precondition
@@ -121,7 +122,7 @@ public:
                 // will help us to get target when (k = sum - f)
                 ans = max(ans, i - mm[f]);
             }
-            mm[sum] = i;
+            mm[sum] = i; // Note we are storing index here
         }
 
         return ans;

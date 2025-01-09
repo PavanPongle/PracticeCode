@@ -35,7 +35,7 @@ public:
         if (s.empty())
             return 0;
         
-        int pos = s.find_last_not_of(' ');
+        int pos = s.find_last_not_of(' '); // find end char, there might be space at end, so we have to skip those
         int lst = pos;
         while(--pos >= 0)
         {

@@ -34,10 +34,10 @@ public:
 
         for(int i = 1 ; i < nums.size(); ++i)
         {
-            if(num != nums[i])
-                --count;
-            else
+            if(num == nums[i])
                 ++count;
+            else
+                --count;
                 
             if(count == 0)
             {

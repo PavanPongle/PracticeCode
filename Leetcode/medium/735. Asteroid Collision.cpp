@@ -23,24 +23,29 @@ Output: [10]
 Explanation: The 2 and -5 collide resulting in -5. The 10 and -5 collide resulting in 10.
  
  
- // solution is stack based
-        // asteroids collision only happen when
-        // there is positive number followed by negative number
+// solution is stack based
+// asteroids collision only happen when
+// there is positive number followed by negative number
  class Solution {
 public:
     vector<int> asteroidCollision(vector<int>& asteroids) {
 
-        vector<int> v; // kind of stack only
+        vector<int> v; // kind of stack only, for storing numbers
 
         for (int i = 0; i < asteroids.size(); ++i) {
-            if (!v.empty() && signbit(asteroids[i]) && !signbit(v.back())) {
+            
+			// if curr is negative number and there exist positive number on stack
+			if (!v.empty() && signbit(asteroids[i]) && !signbit(v.back())) {
+				
 				// if we find a negative number whose last was positive number then
                 bool isDestroyed = false;
 				
-				// iterate until negative number not found 
+				// iterate until there is positve number
                 while (!v.empty() && !signbit(v.back())) {
+					
                     if (v.back() < abs(asteroids[i]))
                         v.pop_back(); // smaller positive gets destroy
+					
                     else if (v.back() == abs(asteroids[i])) {
                         isDestroyed = true;
                         v.pop_back();
@@ -52,11 +57,13 @@ public:
                         break;
                     }
                 }
+				
                 if(!isDestroyed)
                 {
                     v.push_back(asteroids[i]);
                 }
             } else {
+				//add number add in stack, it could be positve or negative
                 v.push_back(asteroids[i]);
             }
         }

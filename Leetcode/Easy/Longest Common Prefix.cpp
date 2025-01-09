@@ -21,16 +21,19 @@ Constraints:
 0 <= strs[i].length <= 200
 strs[i] consists of only lowercase English letters.
 
-
+// this problem can be solved using hashing also, 
+// where we expect the char freq equal to number of string available 
 class Solution {
 public:
     string longestCommonPrefix(vector<string>& strs) {
-
+		
+		// make a string at 0 position as ref for checking the prefix
         size_t minLen = strs[0].length();
         for (size_t i = 1; i < strs.size(); ++i)
         {
             size_t j = 0;
             for (; j < ::min(minLen, strs[i].length()); ++j)
+			// we are not finding min length among the string, but at runtime we are cheking min between 0 index and j index string
             {
                 if (strs[0][j] != strs[i][j])
                 {

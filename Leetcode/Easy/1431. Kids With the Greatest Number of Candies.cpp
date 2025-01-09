@@ -46,7 +46,7 @@ public:
             if(x + extraCandies >= max)
                 b[i] = true;
             
-                i++;
+            i++;
             
         }
         return b;

@@ -43,7 +43,7 @@ public:
         ListNode* pre = nullptr;
         while (head) {
             if (head->val == val) { 
-                if (!pre) {
+                if (!pre) { // head node
                     auto temp = head;
                     head = head->next;
                     org = head; // if we want to delete the head node, then we have to maintain new head in some pointer

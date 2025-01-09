@@ -53,9 +53,12 @@ public:
         for(size_t i = 1 ; i < s.length() ; ++i)
         {
             curr = mymap[s[i]];
-            if(last_value < curr)
+            if(curr > last_value)
             {
                 result -= (last_value << 1);
+				//each left shift multiplies the original number by 2
+				//each right shift divies the original number by 2
+				// consider last_value as object and << operator on it, so 1 is parameter to operator<<(int 1); hence we shift last_value by 1 bit
             }
             result += curr;
             last_value = curr;

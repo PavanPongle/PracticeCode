@@ -39,15 +39,15 @@ auto overload2(F&& ...t)
     return overload_set2<F ...>(std::forward<F>(t) ...);
 }
 
-/*********************************************************/
+/**************************C++20*******************************/
 
 template <typename ... F>
-struct overload3 : public F ... {
+struct overload_set3 : public F ... {
     using F::operator() ...;
 };
 
 template <typename ... F> // Deduction guide
-overload3(F&& ...) -> overload3<F ...>;
+overload3(F&& ...) -> overload_set3<F ...>;
 
 int main()
 {

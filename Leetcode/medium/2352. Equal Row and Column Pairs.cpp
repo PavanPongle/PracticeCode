@@ -41,8 +41,8 @@ public:
 
         unordered_map<size_t, int> rows;
         int cnt = 0;
-        size_t seed = grid[0].size();
-		//find the hash of row and stor its frequencey
+        size_t seed ;
+		//find the hash of row and store its frequencey
         for (int i = 0; i < grid.size() ; ++i) {
             seed = grid[0].size();
             for (int y : grid[i]) {
@@ -72,15 +72,18 @@ class Solution {
 public:
     int equalPairs(vector<vector<int>>& grid) {
         int i,j,result = 0;
-        vector<int> vec;
+        
         int row = grid.size();
         int col = row;
         map<vector<int>, int> m;
 
+		//storing row in map
         for(auto k:grid){
             m[k]++;
         }
 
+		//temp vector used to store coloumn
+		vector<int> vec;
         for(i=0; i<col; i++){
             for(j=0; j<row; j++){
                 vec.push_back(grid[j][i]);

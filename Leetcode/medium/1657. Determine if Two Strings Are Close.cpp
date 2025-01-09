@@ -61,6 +61,8 @@ public:
         if (char_present1 != char_present2)
             return false;
 
+		// Note we are not checking the frequencies of char by char
+		// we are checking occurrences of frequencies 
         sort(freq1.begin(), freq1.end());
         sort(freq2.begin(), freq2.end());
 

@@ -78,6 +78,7 @@ public:
 
         stack<TreeNode*> s;
        
+		// Note we should keep this 2 
         TreeNode* last = nullptr;
         vector<int> v;
 

@@ -37,5 +37,6 @@ public:
      double x = log10(n)/log10(3);
      if(x==(int)x)
          return true;
-     return false*/
+     return false
+	*/
 };

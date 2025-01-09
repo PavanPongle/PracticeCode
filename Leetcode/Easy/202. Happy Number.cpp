@@ -36,7 +36,7 @@ Seen this question in a real interview before?
 class Solution {
 public:
     bool isHappy(int n) {
-        unordered_set<int> mset;
+        unordered_set<int> mset; // to track occurance of sum
         
         while (true) {
             uint32_t digits = 0;
@@ -50,7 +50,7 @@ public:
             if (n == 1)
                 return true;
             else 
-                if(mset.find(digits) != mset.end())
+                if(mset.find(digits) != mset.end()) // sum is occured already, hence exit, it is not going to be 1
                     return false;
                 else
                     mset.insert(digits);

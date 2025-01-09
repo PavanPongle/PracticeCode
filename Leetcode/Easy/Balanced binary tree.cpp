@@ -39,7 +39,7 @@ The number of nodes in the tree is in the range [0, 5000].
  */
 class Solution {
 public:
-
+	// DFS traversal
     int recursive(TreeNode* root)
     {
         if(root == nullptr)

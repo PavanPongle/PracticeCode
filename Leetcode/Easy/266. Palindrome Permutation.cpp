@@ -26,7 +26,7 @@ public:
         }
         int odd = 0;
         for (int x : cnt) {
-            odd += x & 1;
+            odd += x & 1; // if first bit in the number is 1 then it is odd number
         }
         return odd < 2;
     }

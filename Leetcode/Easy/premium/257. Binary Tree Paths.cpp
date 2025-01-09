@@ -40,8 +40,10 @@ public:
         if(!root)
             return ss;
 
+		// instead of taking 2 stacks, we could have taken one stack with custom data having {TreeNode*, val}
         stack<TreeNode*> s;
         stack<string> path;
+		
         s.push(root);
         path.push(to_string(root->val));
 

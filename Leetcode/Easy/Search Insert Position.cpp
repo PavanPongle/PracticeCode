@@ -25,6 +25,9 @@ Constraints:
 nums contains distinct values sorted in ascending order.
 -104 <= target <= 104
 
+// it should be solved using binaray search tree method
+// and low should be retun
+
 class Solution {
 public:
     int searchInsert(vector<int>& nums, int target) {

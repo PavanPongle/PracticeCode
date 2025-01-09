@@ -31,7 +31,7 @@ public:
 
         while (a <= b)
         {
-            int mid = a + (b - a) /2;
+            int mid = a + (b - a) /2; // (b - a) /2 this is half distance from low
 
             if(x / mid == mid)
                 return mid;

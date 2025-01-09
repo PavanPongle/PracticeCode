@@ -19,8 +19,10 @@ Example 3:
 Input: s = "leetcode", k = 3
 Output: 2
 Explanation: "lee", "eet" and "ode" contain 2 vowels.
- 
- 
+
+// This problem is of sliding window pattern
+//
+
 class Solution {
 public:
     int maxVowels(string s, int k) {
@@ -36,8 +38,11 @@ public:
         maxSum = currSum;
         for(int i = k ; maxSum != k && i < s.length(); ++i)
         {
+			//If current char is vowels then inc count of vowels found so far
             if(mm.find(s[i]) != mm.end())
                 ++currSum;
+			
+			//as it is fixed size window,  check at begin if it was vowel then decrease  the count
             if(mm.find(s[i - k]) != mm.end())
                 --currSum;
             
