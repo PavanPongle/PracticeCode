@@ -85,9 +85,11 @@ public:
 		//temp vector used to store coloumn
 		vector<int> vec;
         for(i=0; i<col; i++){
+			//create a coloumn in vector
             for(j=0; j<row; j++){
                 vec.push_back(grid[j][i]);
             }
+			//find if such coloumn
             if(m.find(vec) != m.end()){
                 result += m[vec];
             }

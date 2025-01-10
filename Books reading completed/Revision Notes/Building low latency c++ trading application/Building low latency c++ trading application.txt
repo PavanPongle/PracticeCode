@@ -1,0 +1,150 @@
+1. Introducing Low Latency Application Development in C++
+	1. Latency is defined as the time delay between when a task is started to the time when the task is finished.
+	2. A latency-sensitive application is one in which, as performance latencies are reduced, it improves the business impact or profitability.
+	3. A latency-critical application, on the other hand, is one that fails completely if performance latency is higher than a certain threshold.
+	4. Tick-to-trade (TTT)   TTT is defined as the time from when a packet (usually a market data packet) first hits a participant’s infrastructure (trading server) to the time when the participant is done processing the packet and sends a packet out (order request) to the trading exchange.
+	5. Active Template Library (ATL) is a template-heavy C++ library to help program the Component Object Model (COM).
+	6. GNU Scientific Library (GSL)
+	7. Crypto++ is a free open source C++ library to support algorithms, operations, and utilities for cryptography.
+
+2. Designing Some Common Low Latency Applications
+	1. Exploring low latency electronic trading
+		1.  a market-making algorithm loses money when it is slow at modifying its active orders in the market. For instance, say depending on market conditions, it is quite clear that the market prices are going to go up in the short term; a market-making algorithm will try to move or cancel its sell orders if they are at risk of being executed since it no longer wants to sell at those prices.
+		2. A liquidity-taking algorithm, at the same time, will try to see whether it can send a buy order to trade against a market maker’s sell order at that price.
+	2. Optimizing trading server hardware
+		1. Advanced considerations such as Non-Uniform Memory Access (NUMA), processor instruction sets, instruction pipelines and instruction parallelism, cache hierarchy architecture details, hyperthreading, and overclocked CPUs are often considered.
+	3. Network Interface Cards, switches, and kernel bypass
+		1. specialized Network Interface Cards (NICs) and switches.
+		2. that avoids system calls and buffer copies, known as kernel bypass. One example is Solarflare, which provides OpenOnload and APIs such as ef_vi and TCPDirect, which bypass the kernel when using their NICs; Exablaze is another example of a specialized NIC that supports kernel bypass.
+		3.  switch receiving a packet and forwarding it to the correct interface known as switching latency. Switching latencies are generally very low, in the order of tens of hundreds of nanoseconds
+	4. shared lib, compiler and linker cannot do extended optimisation
+
+3. Exploring C++ Concepts from A Low-LatencyApplication’s Perspective
+	1. looking up the result in a precomputed lookup table should always be faster compared to performing some calculations. Ex. array and index
+	2.  temporal locality and spatial locality. These terms mean that data accessed recently is likely to be in the cache and data next to what we just accessed is likely to be in the cache
+	3. Mostly use stack based memory, or local variable, Static variables are inefficient from the perspective of cache performance since that memory cannot be re-used for other variables and accessing static variables is likely a small fraction of all memory accesses.
+	4. Choosing data types
+		1. Integers smaller or larger than the register size are sometimes slightly slower than regular integers.  This is because the processor must use multiple registers for a single variable and apply some carry-over logic for large integers.
+		2. Conversely, handling integers smaller than a register size is usually handled by using a regular register, zeroing out the upper bits, using only the lower bits, and possibly invoking a type conversion operation. Note that the extra overhead is very small and generally not something to worry about.
+		3. Converting integers from a smaller size into a larger one can take a single clock cycle but  reverse is free.
+		4. Conversion of signed and unsigned integers into floats or doubles takes a few clock cycles. Conversion from unsigned integers can take longer than signed integers
+		5. Conversion from floating-point values into integers can be extremely expensive – 50 to 100 clock
+		6.  Type-casting a pointer to an object to a pointer to a different object violates the strict aliasing rule stating that two pointers of different types cannot point to the same memory location, which really means that it is possible the compiler might not use the same register to store the two different pointers
+	5. Optimizing numerical operations
+		1. division is quite a bit more expensive than multiplication
+		2. compiler rewrite it in bit shift operation
+	6. Optimizing boolean and bitwise operations, use & |
+		1. A simple optimization technique is to order the operands of && in order from lowest to highest probability of being evaluated to true.
+		2. Similarly, for ||, ordering the operands from highest to lowest probability of being true is best.
+		3. Boolean variables are stored as 8 bits and not a single bit,
+	7. use zero copy, pointer, ref 
+	8. Another important aspect of using pointers is that it can prevent compiler optimizations due to Pointer Aliasing. Use __restrict__, or __restrict.  -fstrict-aliasing compiler option to assume no pointer aliasing globally
+	9.  An optimization technique that works well with switch statements is to assign case label values that increment by one and are arranged in ascending order because there is a very good chance they will get implemented as jump tables, which is significantly more efficient.
+	10. Replacing branching with table lookups
+	11. Loop unrolling, 
+		It is possible to provide the compiler with branch prediction hints
+		#define LIKELY_CONDITION(x) __builtin_expect(!!(x), 1)
+		#define UNLIKELY_CONDITION (x) __builtin_expect(!!(x), 0)
+		For C++ 20, these are standardized as the [[likely]] and [[unlikely]] attribute
+	12. Specifying WPO and LTO parameters for the compiler instructs it to treat the entire code base
+	13. Avoiding function pointers
+	14. try to see whether you can use a lambda expression instead of std::bind since that is typically a few clock cycles faster to invoke. due to inline of lambda
+	15. Avoiding recursive functions or replacing them with a loop
+	16. C++ RTTI adds a bunch of extra metadata to each class object to extract and use additional information at runtime. This makes all instances of these objects inefficient, and it is best to turn off RTTI support at the compiler level for low-latency applications.
+	17. For low-latency applications, exceptions are either disabled per function using the throw() or noexcept specifications or disabled across the entire program using compiler flags.
+	 This allows the compiler to assume that some or all methods will not throw an exception and hence the processor does not have to worry about saving and tracking recovery information.
+	18. Aligning data,  If the variable is aligned in memory, then the processor does not have to do any extra work to get it into the required register to be processed.
+	19. where we use the pack() pragma to eliminate all padding
+	20. Grouping variables together
+	21. Grouping functions together
+		Grouping class member functions and non-member functions together so that functions that are used together are close together in memory also leads to better cache performance.
+	22. Starting and stopping threads takes time, so it is best to avoid launching new threads when they are needed and instead use a thread pool
+	23. Maximizing C++ compiler optimization.
+		1. Reordering and scheduling instructions, reduce the data dependencies between expression.
+		2. Using special instructions depending on the architecture. SSE2, AVX2
+		  const size_t size = 1024;
+		  float x[size], a[size], b[size];
+		  for (size_t i = 0; i < size; ++i) {
+		    x[i] = a[i] + b[i];
+		  }
+		For architectures that support special vector registers such as the SSE2 instruction set we discussed before, it can hold 4 4-byte float values simultaneously and perform 4 additions at a time. In this case, the compiler can leverage the vectorization optimization technique and re-write this as the following with loop unrolling to use the SSE2 instruction set:
+
+		  for (size_t i = 0; i < size; i += 4) {
+		    x[i] = a[i] + b[i];
+		    x[i + 1] = a[i + 1] + b[i + 1];
+		    x[i + 2] = a[i + 2] + b[i + 2];
+   			x[i + 3] = a[i + 3] + b[i + 3];
+		  }
+	24. Strength reduction,  is a term used to describe compiler optimizations where complex operations that are quite expensive are replaced by instructions that are simpler and cheaper to improve performance. replace division by multiplication, replace multiplication by loop additions.
+	25. Constant folding and constant propagation
+		Constant folding is a no-brainer optimization technique and applies when there are expressions whose output can be computed entirely at compile time
+	26. Peephole optimizations
+		Peephole optimization is a relatively generic compiler optimization term that refers to a compiler optimization technique where the compiler tries to search for local optimizations in short sequences of instructions
+	27. Additional loop optimizations
+		1. Loop fission breaks a loop down into multiple loops operating on smaller sets of data to improve cache reference locality.
+		2. Loop fusion does the opposite, where if two adjacent loops are executed the same number of times, they can be merged into one to reduce the loop overhead.
+		3. Loop inversion is a technique where a while loop is transformed into a do-while loop inside a conditional if statement. This reduces the total number of jumps by two when the loop is executed and is typically applied to loops that are expected to execute at least once.
+		4. Loop interchange exchanges inner loops and outer loops especially when doing so leads to better cache reference locality – for example, in the cases of iterating over an array where accessing memory contiguously makes a huge performance difference.
+	28. Live range analysis
+		However, if there are variables with live ranges that do not overlap, then the compiler can use the same register for multiple variables in each live range.
+	29. Rematerialization
+		Rematerialization is a compiler technique where the compiler chooses to re-calculate a value (assuming the calculation is trivial) instead of accessing the memory location that contains the value of this calculation already.
+	30. Algebraic reductions		
+		The compiler can find expressions that can be further reduced and simplified using algebraic laws.
+		ex. if(!a && !b) to if(!(a || b))
+	31. Loop invariant code movement : When the compiler can ascertain that some code and instructions within a loop are constant for the entire duration of the loop, that expression can be moved out of the loop.
+	32. Static Single Assignment (SSA)-based optimizations
+	 instructions are re-ordered such that every  variable is assigned in a single place
+	33. Devirtualization :  object type is known at compile time, such as when there is only a single implementation of pure virtual functions
+	34. Understanding when compilers fail to optimize
+		1. Failure to optimize across modules
+		2. Pointer aliasing : to solve this have to use 
+		3. Dynamic memory allocation  __restrict
+		4. Floating-point induction variables : Compilers typically do not use induction variable optimizations for floating-point expressions and variables. This is because of the rounding errors and issues with precision that we have discussed before. This prevents compiler optimizations when dealing with floating-point expressions and values. There are compiler options that can enable unsafe floating-point optimizations,
+		5. __restrict to optimise more on pointer alising
+		6. There are compiler options that can enable unsafe floating-point optimizations
+	35.  GCC itself can perform Profile-Guided Optimization (PGO) when the -fprofile-generate option is enabled. The compiler determines the flow of the program and counts how many times each function and code branch is executed to find optimizations for the critical code paths.
+	36. Link time optimisation, –flto
+	37.  -fwhole-program option enables WPO to enable inter-procedural optimizations, treating the entire code base as a whole program
+		 1. –march
+		 2. -no-rtti
+		 3.  enable fast floating-point value optimizations and even enable unsafe floating-point optimizations. GCC has the -ffp-model=fast, -funsafe-math-optimizations and -ffinite-math-only options to enable these unsafe floating-point optimizations.
+		 4. fdce and –fdse perform DCE and Dead Store Elimination (DSE)
+		 5. fdelayed-branch is supported on many architectures and tries to reorder instructions to try and maximize the throughput of the pipeline after delayed branch
+		 6. fguess-branch-probability tries to guess branch probabilities based on heuristics for branches that the developer has not provided any hint.
+		 7. fif-conversion and -fif-conversion2 try to eliminate branching by changing them into branchless equivalents.
+		 8. fmove-loop-invariants enables loop invariant code movement optimization
+		 9. falign-functions, -falign-labels, and -falign-loops align the starting address of functions, jump targets, and loop locations so that the processor can access them as efficiently as possible.
+		 10.  we must specify the –static parameter to prevent linking with shared libraries and opt for the static library instead
+		 11.  –march=native
+		 12. –Wall, –Wextra, and –Wpendantic parameters,  –Werror
+
+4. Building the C++ Building Blocks for Low Latency Applications.
+	1. setThreadCore(core_id), pthread_setaffinity_np, 
+	2. std::variant has worse runtime performance; hence, we choose to move forward with the old-style union
+	3. C++ network programming using sockets
+		1. One of the main reasons is that blocking sockets are implemented using switches between the user space and the kernel space, and that is highly inefficient.
+		2. we will enable another important optimization for TCP sockets by disabling Nagle’s algorithm.
+		3. Nagle’s algorithm is used to improve buffering in TCP sockets and prevent overhead associated with guaranteeing reliability on the TCP socket. This  is achieved by delaying some packets instead of sending them out immediately. ex.  TCP_NODELAY, using the setsockopt()
+		4. Setting up additional parameters
+		5.  SO_TIMESTAMP option, using the setsockopt() method, to enable software timestamping
+		6. The epoll_add() method is used to add TCPSocket to the list of sockets to be monitored. It uses the epoll_ctl() system call with the EPOLL_CTL_ADD parameter to add the provided file descriptor of the socket to the efd_ epoll class member. EPOLLET enabled the edge-triggered epoll option, which in simple terms means you are notified only once when data needs to be read instead of constant reminders.
+		7.  EPOLLIN is used for notification once data is available to be read
+		8. Call epoll_wait(), detect whether there are any new incoming connections, and if so, add them to our containers.
+		
+5. Designing Our Trading Ecosystem
+	1. Understanding the exchange order book
+	The limit order book contains all the passive limit orders across all market participants for a single trading instrument. These are typically arranged from the highest buy price to the lowest buy price for passive buy orders, and from the lowest sell price to the highest sell price for passive sell orders. This ordering is intuitive and natural because passive buy orders are matched from highest to lowest buy prices and passive sell orders are matched from lowest to highest sell prices. For orders that have the same side and the same price, they are arranged in FIFO order based on when they were sent.
+	 Pro Rata is simply a matching algorithm where larger orders get larger fills from aggressive orders regardless of where they are in the FIFO queue
+	2. Introducing the matching engine
+		PreOpen (right before the market opens), Auction/Opening (right at the moment at which the market opens), PreOpenNoCancel (orders can be entered but not canceled)
+	3. The #pragma pack(pop) simply restores the alignment setting to the default	
+	4.  we only want to tightly pack the structures that will be sent over a network and no other
+	5.  The bids are sorted from highest to lowest price level, and the asks are sorted from lowest to highest price level
+	6. 
+
+11. Adding Instrumentation and Measuring Performance.
+	1.  a 64-bit register containing the number of CPU cycles. We will execute an assembly instruction, rdtsc, to fetch and return this value, which returns this in the form of two 32-bit values that we will convert into a single 64-bit value
+	2. Note one additional detail: for this setup to be as optimized as possible, we need to make sure that the Linux process scheduler does not assign any OS processes to the CPU cores being used by the critical threads. This is achieved on Linux using the isolcpus kernel parameter, which we will not discuss in detail here. The isolcpus parameter tells the process scheduler which cores to ignore when deciding where to schedule a process.
+	3. There are several different hash map implementations available – std::unordered_map, absl::flat_hash_map, boost:: hash maps, emhash7::HashMap, folly::AtomicHashmap, robin_hood::unordered_map, tsl::hopscotch_map, and many more.
+	4. 

@@ -57,7 +57,6 @@ Code, Compile, Run and Debug online from anywhere in world.
 
 using namespace std;
 
-
 condition_variable cv;
 atomic<bool> g_turn{0};
 
@@ -79,7 +78,7 @@ void fun(int id, char c)
             //cout << "sleeping"<< endl;
             mutex mtx;
             unique_lock<mutex> lk(mtx);
-            cv.wait(lk, [&]() { return id == g_turn.load();});
+            cv.wait(lk, [&]() { return id == g_turn.load(); || k <= 0});
             //cout << "after sleeping"<< endl;
         }
     }
