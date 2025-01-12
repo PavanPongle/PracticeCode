@@ -43,7 +43,18 @@ Constraints:
 
 Follow up: If this function is called many times, how would you optimize it?
 
-
+int GetBitsB(int n)
+{
+    int cnt = 0;
+    while(n)
+    {
+        if(n & 1)
+            ++cnt;
+            
+        n = n >> 1;
+    }
+    return cnt;
+}
 
 
 

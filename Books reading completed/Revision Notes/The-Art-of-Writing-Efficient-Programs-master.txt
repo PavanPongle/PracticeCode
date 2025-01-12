@@ -4,7 +4,7 @@ Chapter 1, Introduction to Performance and Concurrency
 Chapter 2, Performance Measurements
 	1. GperfTools
 	2. For the data collected by the Google profiler, the user interface tool is google-pprof (often installed as simply pprof)
-	3. just by changing type of index loop from unsigned int to int reduce run time, this is because of dropping boundary condition checking.
+	3. just by changing type of index loop from unsigned int to signed int reduce run time, this is because of dropping boundary condition checking.
 	4. High-resolution timers, get time of process/thread running on CPU 
 		clock_gettime(CLOCK_REALTIME, &rt0);
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ct0);
@@ -40,11 +40,11 @@ Chapter 3, CPU Architecture, Resources, and Performance Implications
 	6. Data dependencies and pipelining
 		1. If data is not available or is result of some operation then pipeline wait for data to available, loosing cycles.
 		2. 
-		for (size_t i = 0; i < N; ++i) {
-			s[i] = (p1[i] + p2[i]);
-			d[i] = (p1[i] - p2[i]);
-			a1[i] += s[i]*d[i]; // have to wait for it
-		}
+			for (size_t i = 0; i < N; ++i) {
+				s[i] = (p1[i] + p2[i]);
+				d[i] = (p1[i] - p2[i]);
+				a1[i] += s[i]*d[i]; // have to wait for it
+			}
 		3. Register renaming, if enough number of register not available for store the result, then it is stored in someother register and while execution on CPU it is renamed and used instantly.
 		4. Converting a loop into linear code is known as loop unrolling
 	7. Pipelining and branches
@@ -147,7 +147,6 @@ Chapter 4, Memory Architecture and Performance
 		2. Thus, the latency is no longer the limiting factor, the bandwidth is
 		3. similar to branch prediction learning, there is learning for memory access pattern and in advance those memory will be prefetched
 		4. The prefetch can start reading the next value before we need it and thus cut down the average read time, but only if it guesses correctly what that value is
-		5. 
 	6. Optimizing memory performance
 		1. Memory-efficient data structures
 		std::deque (unfortunately, the implementation in most STL versions is not particularly efficient, and sequential accesses to the deque are usually somewhat slower than to the vector of the same size)
@@ -157,7 +156,7 @@ Chapter 4, Memory Architecture and Performance
 		5. The idea here is to try to fit the current working data set into one of the caches, say, the L2 cache, and do as much work on it as possible before moving to the next section of the data.
 		6. Spectre attack 
 		7.  __rdtscp(&i); // GCC/Clang intrinsic function
-		e time-stamp counter (TSC), which is a hardware counter that counts the number of cycles since some point in the past. Using the cycle count as a timer typically results in noisier measurements, but the timer itself is faster
+			e time-stamp counter (TSC), which is a hardware counter that counts the number of cycles since some point in the past. Using the cycle count as a timer typically results in noisier measurements, but the timer itself is faster
 		
 Chapter 5, Threads, Memory, and Concurrency
 	1. Symmetric multi-threading
@@ -184,7 +183,7 @@ Chapter 5, Threads, Memory, and Concurrency
 		3. both the compiler and the hardware can reorder instructions, usually to improve the performance.
 		4. the above diagram shows, whatever execution CPU0 has done in a order, it is not necessary that CPU1 should see it in same order, CPU1 can also see it in different order also. this is exclusively true about only relax memory order but is not true with other memory order.
 		5. if we don't use memory order to then compiler can optimise code such way that, the producer will increament the atomic value and then produce new element, in such when consumer read the data then undefined behaviour can happen to prevent such optimisation memory ordering is used, where consumer see the increament in atomic value only when all prior production of object is done
-		6.  If the producer uses acquire-release order to increment the count, but the consumer reads it with relaxed memory order, there are no guarantees on the visibility of any operations
+		6. If the producer uses acquire-release order to increment the count, but the consumer reads it with relaxed memory order, there are no guarantees on the visibility of any operations.
 		7. On the producer side, we need one-half of the guarantee given by the acquire-release memory barrier (half-barriers): all operations executed before the atomic operation with the barrier must become visible to other threads before they execute the corresponding atomic operation.
 		8. On the one hand, we have the guarantee that everything that is done by the producer to build the new object before it increments the count is already visible to the consumer as soon as this increment is seen. But this is not enough, so, on the other hand, we have the guarantee that the operations executed by the consumer to process this new object cannot be moved backward in time, to a moment before the barrier when they could have seen the object in an unfinished state.
 		9. Default memory model is sequential consistency.
@@ -220,7 +219,7 @@ Chapter 6, Concurrency and Performance
 		The atomic_load() function orders memory access according to memory_order_seq_cst; atomic_load_explicit() orders them as specified by order 
 		The exchange is a read-modify-write operation, if we use only exchange then  when it read the value, which triggers the cache update to all cpus, to optimise it we have used load operation.
 	3. lock-based programs suffer problem called convoying. The tasks of thread A rush through the execution like trucks in a convoy, while nothing gets done on other threads
-	4. in lock free programing no deadlock and no convoying problem as no thread gets blocked and there is no chance of prio Eity inversion it continues when cas operation successful
+	4. in lock free programing no deadlock and no convoying problem as no thread gets blocked and there is no chance of priority inversion it continues when cas operation successful
 	5. Building blocks for concurrent programming
 		1.  pointer spinlock
 			class Ptrlock {
@@ -253,7 +252,10 @@ Chapter 6, Concurrency and Performance
 
 			  void lock() {
 				while (true) {
+				  // if previous value is idle then it substract and then it becomes 0, so lock is acquire for write
 				  if (flag_.fetch_sub(idle, std::memory_order_acquire) == idle) return; // flag_ == 0
+				  
+				  // if previous value is not idle then it restore it's original value
 				  flag_.fetch_add(idle, std::memory_order_relaxed);    // Undo the lock
 				  for (int i = 0; flag_.load(std::memory_order_relaxed) != idle; ) {
 					nanosleep(i);
@@ -268,7 +270,7 @@ Chapter 6, Concurrency and Performance
 			  void lock_shared() {
 				while (true) {
 				  if (flag_.fetch_sub(1, std::memory_order_acquire) > 0) return; // flag_ >= 0
-				  flag_.fetch_add(1, std::memory_order_relaxed);    // Undo the lock
+					flag_.fetch_add(1, std::memory_order_relaxed);    // Undo the lock
 				  for (int i = 0; flag_.load(std::memory_order_relaxed) <= 0; ) {
 					nanosleep(i);
 				  }
@@ -316,7 +318,7 @@ Chapter 6, Concurrency and Performance
 			using ptr_t = std::shared_ptr<T>;
 			public:
 				void publish(ptr_t p) noexcept { std::atomic_store_explicit(&p_, p, std::memory_order_release); }
-				const T* get() const noexcept { return std::atomic_load_explicit(&p_, std::		memory_order_acquire).get(); }
+				const T* get() const noexcept { return std::atomic_load_explicit(&p_, std::memory_order_acquire).get(); }
 				const T& operator*() const noexcept { return *this->get(); }
 				ts_unique_ptr& operator=(ptr_t p) noexcept { this->publish(p); return *this; }
 			private:
@@ -588,11 +590,11 @@ Chapter 8, Concurrency in C++
 			9. await_ready(): it is called after the coroutine is suspended
 			10. await_resume(), it is called just before the coroutine continues to execute after it is resumed
 			11. 
-			struct awaitable {
-				bool await_ready() { return false; }
-				void await_suspend(std::coroutine_handle<> h) {
-				void await_resume() {}
-			};
+				struct awaitable {
+					bool await_ready() { return false; }
+					void await_suspend(std::coroutine_handle<> h) {
+					void await_resume() {}
+				};
 		
 Section 3 – Designing and Coding HighPerformance Programs
 Chapter 9, High-Performance C++
@@ -600,7 +602,7 @@ Chapter 9, High-Performance C++
 	2. while the named RVO (NRVO) is still an optimization, the unnamed RVO is mandatory since C++17
 	3. even if the function makeC is in a separate compilation unit, RVO still takes place. The compiler, therefore, must send the address of the result to the function at the call point. 
 	4. The bottom line is: interact with the OS as little as possible
-	5.  use an allocator with thread-local caches, such as the popular malloc() replacement library TCMalloc. These allocators reserve some amount of memory for each thread: when a thread needs to allocate memory, it is taken from the thread-local memory arena first. 
+	5. use an allocator with thread-local caches, such as the popular malloc() replacement library TCMalloc. These allocators reserve some amount of memory for each thread: when a thread needs to allocate memory, it is taken from the thread-local memory arena first. 
 	6. The key advantage of the fixed-size block allocation is that it does not suffer from fragmentation
 	7. That first-in-first-out property is also an advantage: the last 64 KB memory block is likely to be from the most recently used memory and is still hot in the cache. Reusing this block immediately improves memory reference locality and, therefore, makes more efficient use of the cache. 
 	8. a good program will typically have less than 0.1% of mispredicted branches. The misprediction rate of 1% is quite large.

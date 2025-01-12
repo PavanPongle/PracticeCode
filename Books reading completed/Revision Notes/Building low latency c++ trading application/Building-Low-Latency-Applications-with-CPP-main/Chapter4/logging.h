@@ -160,6 +160,9 @@ namespace Common {
 
     template<typename T, typename... A>
     auto log(const char *s, const T &value, A... args) noexcept {
+        // logger.log("Logging a string:'%'\n", ss);
+        // we will iterate the string, and add until we find %, 
+        // when % found then we will add the next availabe argument from args and continue calling log(...) recursively
       while (*s) {
         if (*s == '%') {
           if (UNLIKELY(*(s + 1) == '%')) { // to allow %% -> % escape character.

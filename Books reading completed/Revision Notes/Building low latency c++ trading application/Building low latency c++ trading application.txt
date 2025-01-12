@@ -16,7 +16,7 @@
 	3. Network Interface Cards, switches, and kernel bypass
 		1. specialized Network Interface Cards (NICs) and switches.
 		2. that avoids system calls and buffer copies, known as kernel bypass. One example is Solarflare, which provides OpenOnload and APIs such as ef_vi and TCPDirect, which bypass the kernel when using their NICs; Exablaze is another example of a specialized NIC that supports kernel bypass.
-		3.  switch receiving a packet and forwarding it to the correct interface known as switching latency. Switching latencies are generally very low, in the order of tens of hundreds of nanoseconds
+		3. switch receiving a packet and forwarding it to the correct interface known as switching latency. Switching latencies are generally very low, in the order of tens of hundreds of nanoseconds
 	4. shared lib, compiler and linker cannot do extended optimisation
 
 3. Exploring C++ Concepts from A Low-LatencyApplication’s Perspective
@@ -28,8 +28,8 @@
 		2. Conversely, handling integers smaller than a register size is usually handled by using a regular register, zeroing out the upper bits, using only the lower bits, and possibly invoking a type conversion operation. Note that the extra overhead is very small and generally not something to worry about.
 		3. Converting integers from a smaller size into a larger one can take a single clock cycle but  reverse is free.
 		4. Conversion of signed and unsigned integers into floats or doubles takes a few clock cycles. Conversion from unsigned integers can take longer than signed integers
-		5. Conversion from floating-point values into integers can be extremely expensive – 50 to 100 clock
-		6.  Type-casting a pointer to an object to a pointer to a different object violates the strict aliasing rule stating that two pointers of different types cannot point to the same memory location, which really means that it is possible the compiler might not use the same register to store the two different pointers
+		5. Conversion from floating-point values into integers can be extremely expensive – 50 to 100 clock.
+		6. Type-casting a pointer to an object to a pointer to a different object violates the strict aliasing rule stating that two pointers of different types cannot point to the same memory location, which really means that it is possible the compiler might not use the same register to store the two different pointers
 	5. Optimizing numerical operations
 		1. division is quite a bit more expensive than multiplication
 		2. compiler rewrite it in bit shift operation
@@ -46,9 +46,9 @@
 		#define LIKELY_CONDITION(x) __builtin_expect(!!(x), 1)
 		#define UNLIKELY_CONDITION (x) __builtin_expect(!!(x), 0)
 		For C++ 20, these are standardized as the [[likely]] and [[unlikely]] attribute
-	12. Specifying WPO and LTO parameters for the compiler instructs it to treat the entire code base
+	12. Specifying WPO(whole program optimisation) and LTO (link time optimisation) parameters for the compiler instructs it to treat the entire code base
 	13. Avoiding function pointers
-	14. try to see whether you can use a lambda expression instead of std::bind since that is typically a few clock cycles faster to invoke. due to inline of lambda
+	14. try to see whether you can use a lambda expression instead of std::bind since that is typically a few clock cycles faster to invoke. due to inline of lambda also
 	15. Avoiding recursive functions or replacing them with a loop
 	16. C++ RTTI adds a bunch of extra metadata to each class object to extract and use additional information at runtime. This makes all instances of these objects inefficient, and it is best to turn off RTTI support at the compiler level for low-latency applications.
 	17. For low-latency applications, exceptions are either disabled per function using the throw() or noexcept specifications or disabled across the entire program using compiler flags.
@@ -98,8 +98,8 @@
 	33. Devirtualization :  object type is known at compile time, such as when there is only a single implementation of pure virtual functions
 	34. Understanding when compilers fail to optimize
 		1. Failure to optimize across modules
-		2. Pointer aliasing : to solve this have to use 
-		3. Dynamic memory allocation  __restrict
+		2. Pointer aliasing : to solve this have to use __restrict
+		3. Dynamic memory allocation  
 		4. Floating-point induction variables : Compilers typically do not use induction variable optimizations for floating-point expressions and variables. This is because of the rounding errors and issues with precision that we have discussed before. This prevents compiler optimizations when dealing with floating-point expressions and values. There are compiler options that can enable unsafe floating-point optimizations,
 		5. __restrict to optimise more on pointer alising
 		6. There are compiler options that can enable unsafe floating-point optimizations
@@ -115,8 +115,8 @@
 		 7. fif-conversion and -fif-conversion2 try to eliminate branching by changing them into branchless equivalents.
 		 8. fmove-loop-invariants enables loop invariant code movement optimization
 		 9. falign-functions, -falign-labels, and -falign-loops align the starting address of functions, jump targets, and loop locations so that the processor can access them as efficiently as possible.
-		 10.  we must specify the –static parameter to prevent linking with shared libraries and opt for the static library instead
-		 11.  –march=native
+		 10. we must specify the –static parameter to prevent linking with shared libraries and opt for the static library instead
+		 11. –march=native
 		 12. –Wall, –Wextra, and –Wpendantic parameters,  –Werror
 
 4. Building the C++ Building Blocks for Low Latency Applications.
@@ -127,9 +127,9 @@
 		2. we will enable another important optimization for TCP sockets by disabling Nagle’s algorithm.
 		3. Nagle’s algorithm is used to improve buffering in TCP sockets and prevent overhead associated with guaranteeing reliability on the TCP socket. This  is achieved by delaying some packets instead of sending them out immediately. ex.  TCP_NODELAY, using the setsockopt()
 		4. Setting up additional parameters
-		5.  SO_TIMESTAMP option, using the setsockopt() method, to enable software timestamping
-		6. The epoll_add() method is used to add TCPSocket to the list of sockets to be monitored. It uses the epoll_ctl() system call with the EPOLL_CTL_ADD parameter to add the provided file descriptor of the socket to the efd_ epoll class member. EPOLLET enabled the edge-triggered epoll option, which in simple terms means you are notified only once when data needs to be read instead of constant reminders.
-		7.  EPOLLIN is used for notification once data is available to be read
+		5. SO_TIMESTAMP option, using the setsockopt() method, to enable software timestamping
+		6. The epoll_add() method is used to add TCPSocket to the list of sockets to be monitored. It uses the epoll_ctl() system call with the EPOLL_CTL_ADD parameter to add the provided file descriptor of the socket to the efd_epoll class member. EPOLLET enabled the edge-triggered epoll option, which in simple terms means you are notified only once when data needs to be read instead of constant reminders.
+		7. EPOLLIN is used for notification once data is available to be read
 		8. Call epoll_wait(), detect whether there are any new incoming connections, and if so, add them to our containers.
 		
 5. Designing Our Trading Ecosystem
