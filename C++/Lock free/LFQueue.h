@@ -5,6 +5,8 @@
 #include <vector>
 #include <thread>
 
+const size_t cacheLineSize = std::hardware_constructive_interference_size;
+
 template<typename T>
 class LFQueue final {
 public:
@@ -12,24 +14,32 @@ public:
         _store(num_elems) /* pre-allocation of vector storage. */ {
     }
 
-    inline auto getNextToWriteTo() noexcept {
-        return &_store[_nextWriteIndex.load(std::memory_order_relaxed)];
+    T* GetNextToWrite()
+    {
+        size_t val = _back.load(std::memory_order_acquire);
+        size_t nxtVal = (val + 1 ) % _size;
+
+        while (!_back.compare_exchange_strong(val, nxtVal, std::memory_order_acq_rel, std::memory_order_relaxed))
+        {
+            val = _back.load(std::memory_order_acquire);
+            nxtVal = (val + 1) % _size;
+        }
+        _used.fetch_add(1, std::memory_order_release);
+        return &_buff[nxtVal];
     }
 
-    inline auto updateWriteIndex() noexcept {
-        auto val = _nextWriteIndex.load(std::memory_order_acquire);
-        _nextWriteIndex.store((val + 1) % _store.size());
-        _numElements.fetch_add(1, std::memory_order_release);
-    }
+    T* GetNextToRead()
+    {
+        size_t val = _front.load(std::memory_order_acquire);
+        size_t nxtVal = (val + 1) % _size;
 
-    inline auto getNextToRead() const noexcept -> const T* {
-        return (Size() ? &_store[_nextReadIndex] : nullptr);
-    }
-
-    inline auto updateReadIndex() noexcept {
-        auto val = _nextReadIndex.load(std::memory_order_acquire);
-        _nextReadIndex.store((val + 1) % _store.size()); // wrap around at the end of container size.
-        _numElements.fetch_sub(1, std::memory_order_release);
+        while (!_front.compare_exchange_strong(val, nxtVal, std::memory_order_acq_rel, std::memory_order_relaxed))
+        {
+            val = _front.load(std::memory_order_acquire);
+            nxtVal = (val + 1) % _size;
+        }
+        _used.fetch_sub(1, std::memory_order_release);
+        return &_buff[nxtVal];
     }
 
     inline auto Size() const noexcept {
@@ -46,7 +56,7 @@ public:
 
     void* operator new(size_t i)
     {
-        return _mm_malloc(i, 64);
+        return _mm_malloc(i, cacheLineSize);
     }
 
     void operator delete(void* p)
@@ -70,9 +80,46 @@ private:
     std::vector<T> _store;
 
     /// Atomic trackers for next index to write new data to and read new data from.
-    alignas(64) std::atomic<size_t> _nextWriteIndex = { 0 };
+    alignas(cacheLineSize) std::atomic<size_t> _nextWriteIndex = { 0 };
     //size_t _padding1[7];
-    alignas(64) std::atomic<size_t> _nextReadIndex = { 0 };
+    alignas(cacheLineSize) std::atomic<size_t> _nextReadIndex = { 0 };
     //size_t _padding2[7];
-    alignas(64) std::atomic<size_t> _numElements = { 0 };
+    alignas(cacheLineSize) std::atomic<size_t> _numElements = { 0 };
 };
+
+
+Buffer<size_t> g_buff(100);
+
+void Producer()
+{
+    static size_t val = 0;
+
+    while (!g_buff.IsFull())
+    {
+        size_t* ptr = g_buff.GetNextToWrite();
+
+        new (ptr) size_t(val++);
+    }
+}
+
+
+void Consumer()
+{
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    while (!g_buff.IsEmpty())
+    {
+        size_t* ptr = g_buff.GetNextToRead();
+
+        std::cout << *ptr << " " ;
+    }
+}
+
+int main()
+{
+    std::thread p(Producer);
+    std::thread c(Consumer);
+
+    p.join();
+    c.join();
+}
+
