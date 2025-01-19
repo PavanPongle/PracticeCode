@@ -150,16 +150,16 @@ private:
 			//wait_if_empty_flag.test_and_set();
 			//wait_if_empty_flag.wait(true);
 
-			//int count = 0;
-			//while (IsEmpty())
-			//{
-			//	if (++count == 10)
-			//	{
-			//		std::cout << "thread is sleeping" << IsEmpty() << std::endl;
-			//		std::this_thread::sleep_for(std::chrono::nanoseconds(10));
-			//		count = 0;
-			//	}
-			//}
+			int count = 0;
+			while (IsEmpty())
+			{
+				if (++count == 10)
+				{
+					std::cout << "thread is sleeping" << IsEmpty() << std::endl;
+					std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+					count = 0;
+				}
+			}
 
 			return true;
 		}
